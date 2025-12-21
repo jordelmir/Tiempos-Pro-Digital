@@ -1,9 +1,7 @@
-'use client'
-
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { UserRole, AppUser, DrawTime, GameMode } from '@/types';
+import { useAuthStore } from '../store/useAuthStore';
+import { UserRole, AppUser, DrawTime, GameMode } from '../types';
 import UserCreationForm from './UserCreationForm';
 import DataPurgeCard from './DataPurgeCard';
 import RechargeModal from './RechargeModal';
@@ -17,10 +15,10 @@ import GlobalBetsTable from './GlobalBetsTable';
 import RiskLimitManager from './RiskLimitManager';
 import TopNumbersPanel from './TopNumbersPanel'; 
 import PersonalBetsPanel from './PersonalBetsPanel';
-import { useServerClock } from '@/hooks/useServerClock';
-import { formatCurrency } from '@/constants';
-import { supabase } from '@/lib/supabase/client';
-import { api } from '@/services/api';
+import { useServerClock } from '../hooks/useServerClock';
+import { formatCurrency } from '../constants';
+import { supabase } from '../lib/supabaseClient';
+import { api } from '../services/edgeApi';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 import WinnerOverlay from './WinnerOverlay';
 
@@ -166,8 +164,8 @@ export default function Dashboard() {
   const fetchLists = async () => {
     if (!user || isClient) return;
     setLoadingLists(true);
-    if (isAdmin || isVendor) { const { data } = await supabase.from('profiles').select('*').eq('role', 'Cliente').limit(100); if (data) setPlayers(data as AppUser[]); }
-    if (isAdmin) { const { data } = await supabase.from('profiles').select('*').eq('role', 'Vendedor').limit(100); if (data) setVendors(data as AppUser[]); }
+    if (isAdmin || isVendor) { const { data } = await supabase.from('app_users').select('*').eq('role', 'Cliente').limit(100); if (data) setPlayers(data as AppUser[]); }
+    if (isAdmin) { const { data } = await supabase.from('app_users').select('*').eq('role', 'Vendedor').limit(100); if (data) setVendors(data as AppUser[]); }
     setLoadingLists(false);
   };
 
@@ -353,8 +351,19 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 overflow-y-auto max-h-[300px] pr-2">
                                 {pendingBets.map(bet => (
                                     <div key={bet.id} className="bg-[#0a0c12] border border-white/5 rounded-xl p-4 flex justify-between items-center group transition-all hover:border-cyber-success/40">
-                                        <div><div className="text-2xl font-mono font-black text-white">{bet.number}</div><div className="text-[8px] text-slate-500 uppercase tracking-widest">{bet.draw.split(' ')[0]}</div></div>
-                                        <div className="text-right"><div className="text-cyber-success font-black font-mono text-base">{formatCurrency(bet.amount)}</div><button onClick={() => setPendingBets(p => p.filter(b => b.id !== bet.id))} className="text-[8px] text-red-500 mt-2 hover:text-white transition-colors">Eliminar</button></div>
+                                        <div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-2xl font-mono font-black text-white">{bet.number}</div>
+                                                <div className={`px-2 py-0.5 rounded text-[7px] font-black border uppercase tracking-tighter ${bet.mode === GameMode.REVENTADOS ? 'border-red-600 text-red-500 bg-red-950/40 animate-pulse' : 'border-cyber-neon/50 text-cyber-neon bg-cyan-950/20'}`}>
+                                                    {bet.mode === GameMode.REVENTADOS ? 'REVENTADO' : 'NORMAL'}
+                                                </div>
+                                            </div>
+                                            <div className="text-[8px] text-slate-500 uppercase tracking-widest mt-1">{bet.draw.split(' ')[0]}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-cyber-success font-black font-mono text-base">{formatCurrency(bet.amount)}</div>
+                                            <button onClick={() => setPendingBets(p => p.filter(b => b.id !== bet.id))} className="text-[8px] text-red-500 mt-2 hover:text-white transition-colors">Eliminar</button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

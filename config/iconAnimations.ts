@@ -1,4 +1,3 @@
-// config/iconAnimations.ts
 export type IconTheme = "cyber" | "neon" | "minimal" | "ios" | "futuristic";
 
 export type IconAnimationProfile = {

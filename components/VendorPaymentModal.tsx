@@ -1,13 +1,11 @@
-'use client'
-
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { api } from '@/services/api';
-import { AppUser } from '@/types';
-import { useAuthStore } from '@/store/useAuthStore';
-import { formatCurrency } from '@/constants';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { api } from '../services/edgeApi';
+import { AppUser } from '../types';
+import { useAuthStore } from '../store/useAuthStore';
+import { formatCurrency } from '../constants';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface VendorPaymentModalProps {
   isOpen: boolean;

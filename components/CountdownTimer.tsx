@@ -1,9 +1,7 @@
-'use client'
-
 
 import React, { useMemo } from 'react';
-import { useServerClock } from '@/hooks/useServerClock';
-import { UserRole } from '@/types';
+import { useServerClock } from '../hooks/useServerClock';
+import { UserRole } from '../types';
 
 interface CountdownTimerProps {
     role: UserRole;

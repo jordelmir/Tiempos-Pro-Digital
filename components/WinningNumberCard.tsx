@@ -1,7 +1,5 @@
-'use client'
-
 import React, { useEffect, useState } from 'react';
-import { DrawTime, DrawResult, UserRole } from '@/types';
+import { DrawTime, DrawResult, UserRole } from '../types';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 
 interface WinningNumberCardProps {

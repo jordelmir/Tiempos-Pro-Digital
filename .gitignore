@@ -22,12 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vercel
-.env*.local
-.next/
-out/
-build/
-.cache/
-.DS_Store
-*.swp
-*.swo

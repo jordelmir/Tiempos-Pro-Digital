@@ -1,3 +1,5 @@
+
+
 export enum UserRole {
   SuperAdmin = 'SuperAdmin',
   Vendedor = 'Vendedor',
@@ -32,7 +34,7 @@ export interface AppUser {
   issuer_id?: string;
   created_at: string;
   updated_at: string;
-  active_numbers?: string[];
+  active_numbers?: string[]; 
   recent_sale?: {
     target: string;
     amount: number;
@@ -132,69 +134,72 @@ export interface DrawResultPayload {
 }
 
 export interface DrawResult {
-  id: string;
-  date: string;
-  drawTime: DrawTime;
-  winningNumber: string;
-  isReventado: boolean;
-  reventadoNumber?: string;
-  status: 'OPEN' | 'CLOSED' | 'VERIFYING';
-  created_at: string;
+    id: string;
+    date: string;
+    drawTime: DrawTime;
+    winningNumber: string;
+    isReventado: boolean;
+    reventadoNumber?: string;
+    status: 'OPEN' | 'CLOSED' | 'VERIFYING';
+    created_at: string;
 }
 
 export interface WeeklyDataStats {
-  year: number;
-  weekNumber: number;
-  recordCount: number;
-  startDate: string;
-  endDate: string;
-  sizeEstimate: string;
+    year: number;
+    weekNumber: number;
+    recordCount: number;
+    startDate: string;
+    endDate: string;
+    sizeEstimate: string;
 }
 
 export interface SystemSetting {
-  key: string;
-  value: any;
-  description: string;
-  group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
-  updated_at: string;
-  updated_by: string;
-  is_locked?: boolean;
+    key: string;
+    value: any;
+    description: string;
+    group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
+    updated_at: string;
+    updated_by: string;
+    is_locked?: boolean;
 }
 
 export interface MasterCatalogItem {
-  id: string;
-  category: string;
-  code: string;
-  label: string;
-  status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
-  metadata?: any;
-  order_index: number;
+    id: string;
+    category: string;
+    code: string;
+    label: string;
+    status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
+    metadata?: any;
+    order_index: number;
 }
 
 export type PurgeTarget = 'BETS_HISTORY' | 'AUDIT_LOGS' | 'RESULTS_HISTORY' | 'LEDGER_OLD' | 'DEEP_CLEAN';
 
 export interface PurgeAnalysis {
-  target: PurgeTarget;
-  cutoffDate: string;
-  recordCount: number;
-  estimatedSizeKB: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  canProceed: boolean;
-  description: string;
+    target: PurgeTarget;
+    cutoffDate: string;
+    recordCount: number;
+    estimatedSizeKB: number;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    canProceed: boolean;
+    description: string;
 }
 
+// Added missing RiskLimit export
 export interface RiskLimit {
   draw_type: string;
   number: string;
   max_amount: number;
 }
 
+// Added missing RiskLimitStats export
 export interface RiskLimitStats {
   number: string;
   total_sold: number;
   risk_percentage: number;
 }
 
+// Added missing RiskAnalysisReport export
 export interface RiskAnalysisReport {
   draw: string;
   timestamp: string;

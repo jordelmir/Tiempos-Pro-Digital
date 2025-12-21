@@ -1,11 +1,9 @@
-'use client'
-
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { api } from '@/services/api';
-import { Bet, UserRole, DrawTime, GameMode } from '@/types';
-import { formatCurrency, formatDate } from '@/constants';
+import { useAuthStore } from '../store/useAuthStore';
+import { api } from '../services/edgeApi';
+import { Bet, UserRole, DrawTime, GameMode } from '../types';
+import { formatCurrency, formatDate } from '../constants';
 import TicketViewModal from './TicketViewModal';
 import WinnerOverlay from './WinnerOverlay';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
@@ -25,8 +23,9 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     const [loading, setLoading] = useState(true);
     const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
 
-    // WINNER DETECTION STATE
-    const [winnerData, setWinnerData] = useState<any>(null);
+    // --- PROTOCOLO DE GANADORES SECUENCIAL ---
+    const [winnerQueue, setWinnerQueue] = useState<any[]>([]);
+    const [currentWinner, setCurrentWinner] = useState<any>(null);
     const prevBetsRef = useRef<Map<string, string>>(new Map()); 
 
     // FILTERS & SEARCH
@@ -39,6 +38,15 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sortConfig, setSortConfig] = useState<{ key: SortField, order: SortOrder }>({ key: 'created_at', order: 'desc' });
+
+    // Lógica para procesar la cola de ganes
+    useEffect(() => {
+        if (winnerQueue.length > 0 && !currentWinner) {
+            const next = winnerQueue[0];
+            setCurrentWinner(next);
+            setWinnerQueue(prev => prev.slice(1));
+        }
+    }, [winnerQueue, currentWinner]);
 
     const fetchBets = async () => {
         if (!user) return;
@@ -53,30 +61,31 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
             });
             if (res.data) {
                 const incomingBets = res.data.bets as any[];
+                const newWinsDetected: any[] = [];
                 
-                // --- PROTOCOLO DE DETECCIÓN DE GANADORES (GLOBAL SENSOR) ---
                 incomingBets.forEach(bet => {
                     const oldStatus = prevBetsRef.current.get(bet.id);
-                    // Solo activar si el usuario es el dueño de la apuesta
-                    if (bet.status === 'WON' && oldStatus === 'PENDING') {
-                        if (bet.user_id === user.id) {
-                            const multiplier = bet.mode.includes('200x') ? 200 : 90;
-                            // CORRECCIÓN: Normalizar céntimos a moneda real (valor / 100)
-                            const realPrizeValue = (bet.amount_bigint * multiplier) / 100;
-                            
-                            setWinnerData({
-                                amount: realPrizeValue,
-                                number: bet.numbers,
-                                draw: bet.draw_id || 'Sorteo',
-                                type: bet.mode.includes('200x') ? 'REVENTADOS' : 'TIEMPOS'
-                            });
-                            // Actualizar balance inmediatamente
-                            fetchUser(true); 
-                        }
+                    // Solo activar si el usuario es el dueño de la apuesta y el estado cambió a WON
+                    if (bet.status === 'WON' && oldStatus === 'PENDING' && bet.user_id === user.id) {
+                        const multiplier = bet.mode.includes('200x') ? 200 : 90;
+                        const realPrizeValue = (bet.amount_bigint * multiplier) / 100;
+                        
+                        newWinsDetected.push({
+                            amount: realPrizeValue,
+                            number: bet.numbers,
+                            draw: bet.draw_id || 'Sorteo',
+                            type: bet.mode.includes('200x') ? 'REVENTADOS' : 'TIEMPOS'
+                        });
                     }
-                    // Guardar estado actual para siguiente tick
                     prevBetsRef.current.set(bet.id, bet.status);
                 });
+
+                if (newWinsDetected.length > 0) {
+                    // ORDENAMIENTO TÁCTICO: Primero TIEMPOS (Normal), luego REVENTADOS
+                    newWinsDetected.sort((a, b) => a.type === 'TIEMPOS' ? -1 : 1);
+                    setWinnerQueue(prev => [...prev, ...newWinsDetected]);
+                    fetchUser(true); // Sync balance
+                }
 
                 setBets(incomingBets);
             }
@@ -161,7 +170,9 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     return (
         <div className="relative group animate-in fade-in duration-500 w-full">
             <TicketViewModal isOpen={!!selectedBet} onClose={() => setSelectedBet(null)} bet={selectedBet} />
-            <WinnerOverlay isOpen={!!winnerData} onClose={() => setWinnerData(null)} data={winnerData} />
+            
+            {/* OVERLAY DE GANADORES CENTRALIZADO */}
+            <WinnerOverlay isOpen={!!currentWinner} onClose={() => setCurrentWinner(null)} data={currentWinner} />
 
             <div className="absolute -inset-1 bg-cyber-blue rounded-[2rem] opacity-20 blur-2xl animate-pulse pointer-events-none"></div>
 
@@ -232,23 +243,25 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
 
                 {/* TABLE */}
                 <div className="relative overflow-x-auto custom-scrollbar bg-[#080c14]">
-                    <table className="w-full text-left border-collapse relative z-10 min-w-[800px]">
+                    <table className="w-full text-left border-collapse relative z-10 min-w-[900px]">
                         <thead className="bg-[#02040a] shadow-xl border-b border-white/10">
                             <tr className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">
                                 <SortableHeader label="Timestamp" field="created_at" current={sortConfig} onSort={handleSort} className="p-4 pl-6" />
                                 <SortableHeader label="Usuario / Origen" field="user_name" current={sortConfig} onSort={handleSort} className="p-4" />
                                 <SortableHeader label="Número" field="numbers" current={sortConfig} onSort={handleSort} className="p-4 text-center" />
                                 <th className="p-4 text-center">Sorteo</th>
+                                <th className="p-4 text-center">Modo Operativo</th>
                                 <SortableHeader label="Inversión" field="amount_bigint" current={sortConfig} onSort={handleSort} className="p-4 text-right" />
+                                <th className="p-4 text-right text-cyber-success">Premio Ganado</th>
                                 <SortableHeader label="Estado" field="status" current={sortConfig} onSort={handleSort} className="p-4 text-center" />
                                 <th className="p-4 text-right pr-6">Acción</th>
                             </tr>
                         </thead>
                         <tbody className="font-mono text-xs">
                             {loading ? (
-                                <tr><td colSpan={7} className="p-20 text-center text-cyber-blue animate-pulse tracking-widest bg-black/40">DESCIFRANDO_DATOS...</td></tr>
+                                <tr><td colSpan={9} className="p-20 text-center text-cyber-blue animate-pulse tracking-widest bg-black/40">DESCIFRANDO_DATOS...</td></tr>
                             ) : paginatedBets.length === 0 ? (
-                                <tr><td colSpan={7} className="p-20 text-center text-slate-600 tracking-widest bg-black/20">SIN_COINCIDENCIAS</td></tr>
+                                <tr><td colSpan={9} className="p-20 text-center text-slate-600 tracking-widest bg-black/20">SIN_COINCIDENCIAS</td></tr>
                             ) : (
                                 paginatedBets.map(bet => {
                                     const isWin = bet.status === 'WON';
@@ -256,6 +269,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                                     const isPlayer = bet.origin === 'Jugador';
                                     const multiplier = bet.mode.includes('200x') ? 200 : 90;
                                     const totalPrize = bet.amount_bigint * multiplier;
+                                    const isReventadoMode = bet.mode.includes('200x');
                                     
                                     return (
                                         <tr key={bet.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
@@ -282,24 +296,25 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                                                     {bet.draw_id?.split(' ')[0]}
                                                 </div>
                                             </td>
+                                            <td className="p-4 text-center">
+                                                <div className={`px-2 py-1 rounded text-[7px] font-black border uppercase tracking-tighter inline-block ${isReventadoMode ? 'border-red-600 text-red-500 bg-red-950/40 animate-pulse' : 'border-cyber-neon/50 text-cyber-neon bg-cyan-950/20'}`}>
+                                                    {isReventadoMode ? 'REVENTADO' : 'NORMAL'}
+                                                </div>
+                                            </td>
                                             <td className="p-4 text-right font-bold text-white text-sm">
                                                 {formatCurrency(bet.amount_bigint)}
                                             </td>
+                                            <td className={`p-4 text-right font-black text-sm ${isWin ? 'text-cyber-success text-glow-green drop-shadow-[0_0_8px_rgba(10,255,96,0.5)] animate-pulse' : 'text-slate-700'}`}>
+                                                {isWin ? formatCurrency(totalPrize) : formatCurrency(totalPrize)}
+                                            </td>
                                             <td className="p-4 text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase transition-all duration-300 ${
-                                                        isWin ? 'bg-green-900/30 text-green-400 border-green-500/50 shadow-neon-green' : 
-                                                        isPending ? 'bg-blue-900/30 text-blue-400 border-blue-500/50' : 
-                                                        'bg-red-900/10 text-slate-600 border-slate-800'
-                                                    }`}>
-                                                        {isWin ? 'GANADOR' : isPending ? 'EN JUEGO' : 'CERRADO'}
-                                                    </span>
-                                                    {isWin && (
-                                                        <div className="text-cyber-success font-mono font-black text-[10px] drop-shadow-[0_0_8px_rgba(10,255,96,0.8)] animate-pulse">
-                                                            {formatCurrency(totalPrize)}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <span className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase transition-all duration-300 ${
+                                                    isWin ? 'bg-green-900/30 text-green-400 border-green-500/50 shadow-neon-green' : 
+                                                    isPending ? 'bg-blue-900/30 text-blue-400 border-blue-500/50' : 
+                                                    'bg-red-900/10 text-slate-600 border-slate-800'
+                                                }`}>
+                                                    {isWin ? 'GANADOR' : isPending ? 'EN JUEGO' : 'CERRADO'}
+                                                </span>
                                             </td>
                                             <td className="p-4 text-right pr-6">
                                                 <button onClick={() => setSelectedBet(bet)} className="w-8 h-8 rounded-lg bg-black border border-white/10 text-slate-500 hover:text-white hover:border-cyber-blue transition-all shadow-inner">

@@ -1,11 +1,9 @@
-'use client'
-
 
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Bet } from '@/types';
-import { formatCurrency, formatDate } from '@/constants';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { Bet } from '../types';
+import { formatCurrency, formatDate } from '../constants';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface TicketViewModalProps {
   isOpen: boolean;

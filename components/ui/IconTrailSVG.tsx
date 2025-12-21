@@ -1,8 +1,3 @@
-'use client'
-
-// components/ui/IconTrailSVG.tsx
-'use client'
-
 import React, { useEffect, useRef } from "react";
 
 type IconTrailProps = {
@@ -22,10 +17,10 @@ export default function IconTrailSVG({ children, className = "", trailOn = false
     paths.forEach((p: any) => {
       try {
         if (p.getTotalLength) {
-          const len = p.getTotalLength();
-          p.style.strokeDasharray = `${len}`;
-          p.style.strokeDashoffset = trailOn ? "0" : `${len}`;
-          p.style.transition = "stroke-dashoffset 1.6s linear, opacity 0.4s";
+            const len = p.getTotalLength();
+            p.style.strokeDasharray = `${len}`;
+            p.style.strokeDashoffset = trailOn ? "0" : `${len}`;
+            p.style.transition = "stroke-dashoffset 1.6s linear, opacity 0.4s";
         }
       } catch (e) {
         // some elements might not support getTotalLength

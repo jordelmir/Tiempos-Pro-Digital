@@ -1,6 +1,4 @@
-'use client'
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children?: ReactNode;
@@ -15,8 +13,9 @@ interface State {
 /**
  * ErrorBoundary class component to catch rendering errors in the component tree.
  */
-export default class ErrorBoundary extends Component<Props, State> {
-  // Initialize state with property initialization
+// Fix: Explicitly extending React.Component to ensure inheritance members like setState and props are resolved correctly by the TypeScript compiler.
+export default class ErrorBoundary extends React.Component<Props, State> {
+  // Fix: Ensuring the state property is correctly typed and initialized for the React.Component lifecycle.
   public state: State = {
     hasError: false,
     error: null,
@@ -33,14 +32,15 @@ export default class ErrorBoundary extends Component<Props, State> {
   /**
    * Lifecycle method to handle error side effects and update state trace.
    */
+  // Fix: componentDidCatch implementation now correctly accesses inherited setState from React.Component.
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
-    // Fix: Correctly calling setState inherited from Component base class
-    this.setState({ errorInfo });
+    // Fix: this.setState is correctly identified as a member of React.Component.
+    this.setState({ error, errorInfo });
   }
 
   public render() {
-    // Fix: Accessing state inherited from Component base class
+    // Fix: Accessing this.state from the React.Component instance.
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-black text-red-500 font-mono p-8 flex flex-col items-center justify-center relative overflow-hidden selection:bg-red-500 selection:text-black">
@@ -62,10 +62,8 @@ export default class ErrorBoundary extends Component<Props, State> {
             <div className="mb-8 p-4 bg-red-950/20 border border-red-900/50 rounded overflow-auto max-h-60">
               <p className="text-xl font-bold mb-2 text-white">Error Trace:</p>
               <pre className="text-xs text-red-300 whitespace-pre-wrap break-all">
-                {/* Accessing state inherited from base class */}
                 {this.state.error && this.state.error.toString()}
                 <br />
-                {/* Accessing state inherited from base class */}
                 {this.state.errorInfo && this.state.errorInfo.componentStack}
               </pre>
             </div>
@@ -93,7 +91,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing props inherited from Component base class
+    // Fix: Accessing this.props inherited from standard React.Component class.
     return this.props.children;
   }
 }

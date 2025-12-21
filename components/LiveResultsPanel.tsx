@@ -1,10 +1,8 @@
-'use client'
-
 
 import React, { useState } from 'react';
-import { useLiveResults } from '@/hooks/useLiveResults';
-import { DrawTime, UserRole } from '@/types';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useLiveResults } from '../hooks/useLiveResults';
+import { DrawTime, UserRole } from '../types';
+import { useAuthStore } from '../store/useAuthStore';
 import WinningNumberCard from './WinningNumberCard';
 import AdminResultControl from './AdminResultControl'; 
 

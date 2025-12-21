@@ -1,4 +1,3 @@
-
 import { supabase } from './supabaseClient';
 
 // Types mirror the Kotlin backend enums

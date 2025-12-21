@@ -1,10 +1,8 @@
-'use client'
-
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { api } from '@/services/api';
-import { DrawTime, RiskLimit, RiskLimitStats } from '@/types';
-import { formatCurrency } from '@/constants';
+import { api } from '../services/edgeApi';
+import { DrawTime, RiskLimit, RiskLimitStats } from '../types';
+import { formatCurrency } from '../constants';
 
 // --- TYPES & INTERFACES ---
 type ViewMode = 'SATURATION' | 'VOLUME' | 'VELOCITY';
