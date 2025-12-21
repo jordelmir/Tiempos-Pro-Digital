@@ -77,12 +77,15 @@ export default function Login() {
         }
     }, [activeRole]);
 
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     // --- LOGIC ---
     const fillCredentials = (role: LoginRole) => {
         setActiveRole(role);
+        setErrorMsg(null);
         if (role === 'ADMIN') {
-            setEmail('admin@tiempos.local');
-            setPassword('123456');
+            setEmail('admin01@tiempospro.digital');
+            setPassword('Admin@2025!uX1');
         } else if (role === 'VENDOR') {
             setEmail('vendedor@test.com');
             setPassword('123456');
@@ -95,6 +98,7 @@ export default function Login() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setViewState('BOOTING');
+        setErrorMsg(null);
 
         const { error } = await supabase.auth.signInWithPassword({
             email,
@@ -102,12 +106,12 @@ export default function Login() {
         });
 
         // Cinematic Delay
-        await new Promise(r => setTimeout(r, 2500));
+        await new Promise(r => setTimeout(r, 2000));
 
         if (error) {
             setViewState('ACCESS_DENIED');
+            setErrorMsg(error.message === 'Invalid login credentials' ? 'CREDENCIALES INVÁLIDAS' : error.message.toUpperCase());
             setTimeout(() => setViewState('IDLE'), 2000);
-            alert('ACCESO DENEGADO');
         } else {
             setViewState('ACCESS_GRANTED');
             await fetchUser();
@@ -171,8 +175,8 @@ export default function Login() {
                     </div>
                     <div className="text-center pb-8 w-full flex justify-center">
                         {/* FIX: RESPONSIVE FONT SIZE & TRACKING */}
-                        <div className={`font-display font-black text-lg sm:text-2xl md:text-3xl tracking-[0.2em] md:tracking-[0.3em] transition-all duration-300 whitespace-nowrap ${viewState === 'ACCESS_GRANTED' ? 'text-white drop-shadow-[0_0_30px_white]' : 'text-rose-500 animate-pulse text-shadow-neon-red'}`}>
-                            {viewState === 'ACCESS_GRANTED' ? 'GRANTED' : 'AUTHENTICATING'}
+                        <div className={`font-display font-black text-lg sm:text-2xl md:text-3xl tracking-[0.2em] md:tracking-[0.3em] transition-all duration-300 whitespace-nowrap ${viewState === 'ACCESS_GRANTED' ? 'text-white drop-shadow-[0_0_30px_white]' : viewState === 'ACCESS_DENIED' ? 'text-rose-600' : 'text-rose-500 animate-pulse text-shadow-neon-red'}`}>
+                            {viewState === 'ACCESS_GRANTED' ? 'GRANTED' : viewState === 'ACCESS_DENIED' ? errorMsg || 'DENIED' : 'AUTHENTICATING'}
                         </div>
                     </div>
                 </div>
@@ -226,8 +230,8 @@ export default function Login() {
                 </div>
 
                 <div className="absolute bottom-16 text-center w-full">
-                    <div className={`font-display font-black text-xl md:text-2xl tracking-[0.2em] md:tracking-[0.3em] uppercase ${viewState === 'ACCESS_GRANTED' ? 'text-white text-shadow-white' : 'text-violet-300 text-shadow-neon-purple'}`}>
-                        {viewState === 'ACCESS_GRANTED' ? 'ASSETS VERIFIED' : 'SYNCING LEDGER'}
+                    <div className={`font-display font-black text-xl md:text-2xl tracking-[0.2em] md:tracking-[0.3em] uppercase ${viewState === 'ACCESS_GRANTED' ? 'text-white text-shadow-white' : viewState === 'ACCESS_DENIED' ? 'text-red-500' : 'text-violet-300 text-shadow-neon-purple'}`}>
+                        {viewState === 'ACCESS_GRANTED' ? 'ASSETS VERIFIED' : viewState === 'ACCESS_DENIED' ? errorMsg || 'ACCESS DENIED' : 'SYNCING LEDGER'}
                     </div>
                     <div className="text-[10px] font-mono text-fuchsia-300 mt-2 font-bold tracking-widest">SECURE_CHANNEL_ESTABLISHED</div>
                 </div>
@@ -284,7 +288,7 @@ export default function Login() {
                 </div>
 
                 <div className="absolute bottom-8 font-display font-black text-2xl md:text-3xl italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200 drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]">
-                    {viewState === 'ACCESS_GRANTED' ? 'WELCOME PLAYER_1' : 'CONNECTING...'}
+                    {viewState === 'ACCESS_GRANTED' ? 'WELCOME PLAYER_1' : viewState === 'ACCESS_DENIED' ? errorMsg || 'DENIED' : 'CONNECTING...'}
                 </div>
 
                 <style>{`
@@ -334,6 +338,13 @@ export default function Login() {
                                         TIEMPOS<span className={`drop-shadow-[0_0_20px_currentColor] ${theme.primary} transition-colors duration-700`}>PRO</span>
                                     </h1>
                                     <p className={`text-xs uppercase tracking-[0.5em] font-bold animate-pulse transition-colors duration-700 ${theme.secondaryText}`}>Acceso Blindado</p>
+
+                                    {errorMsg && (
+                                        <div className="mt-4 p-2 bg-red-950/50 border border-red-500 rounded text-[10px] text-red-500 font-bold animate-in fade-in slide-in-from-top-1">
+                                            <i className="fas fa-exclamation-triangle mr-2"></i>
+                                            {errorMsg}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <form onSubmit={handleLogin} className="space-y-6">
@@ -427,8 +438,8 @@ export default function Login() {
                                         <button
                                             onClick={() => fillCredentials('ADMIN')}
                                             className={`py-4 rounded-xl border-[3px] transition-all duration-300 flex flex-col items-center justify-center gap-2 group relative overflow-hidden ${activeRole === 'ADMIN'
-                                                    ? 'bg-rose-950/80 border-rose-500 text-rose-400 shadow-[0_0_30px_rgba(225,29,72,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-rose-500'
-                                                    : 'bg-black/60 border-white/10 text-slate-600 hover:border-rose-500/50 hover:text-rose-400 hover:bg-rose-900/20'
+                                                ? 'bg-rose-950/80 border-rose-500 text-rose-400 shadow-[0_0_30px_rgba(225,29,72,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-rose-500'
+                                                : 'bg-black/60 border-white/10 text-slate-600 hover:border-rose-500/50 hover:text-rose-400 hover:bg-rose-900/20'
                                                 }`}
                                         >
                                             <i className={`fas fa-shield-alt text-xl ${activeRole === 'ADMIN' ? 'animate-pulse' : ''}`}></i>
@@ -439,8 +450,8 @@ export default function Login() {
                                         <button
                                             onClick={() => fillCredentials('VENDOR')}
                                             className={`py-4 rounded-xl border-[3px] transition-all duration-300 flex flex-col items-center justify-center gap-2 group relative overflow-hidden ${activeRole === 'VENDOR'
-                                                    ? 'bg-[#1e1b4b]/90 border-violet-500 text-violet-400 shadow-[0_0_30px_rgba(139,92,246,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-violet-500'
-                                                    : 'bg-black/60 border-white/10 text-slate-600 hover:border-violet-500/50 hover:text-violet-400 hover:bg-[#1e1b4b]/40'
+                                                ? 'bg-[#1e1b4b]/90 border-violet-500 text-violet-400 shadow-[0_0_30px_rgba(139,92,246,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-violet-500'
+                                                : 'bg-black/60 border-white/10 text-slate-600 hover:border-violet-500/50 hover:text-violet-400 hover:bg-[#1e1b4b]/40'
                                                 }`}
                                         >
                                             <i className={`fas fa-briefcase text-xl ${activeRole === 'VENDOR' ? 'animate-pulse' : ''}`}></i>
@@ -451,8 +462,8 @@ export default function Login() {
                                         <button
                                             onClick={() => fillCredentials('PLAYER')}
                                             className={`py-4 rounded-xl border-[3px] transition-all duration-300 flex flex-col items-center justify-center gap-2 group relative overflow-hidden ${activeRole === 'PLAYER'
-                                                    ? 'bg-[#083344]/90 border-cyan-400 text-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-cyan-400'
-                                                    : 'bg-black/60 border-white/10 text-slate-600 hover:border-cyan-500/50 hover:text-cyan-400 hover:bg-[#083344]/40'
+                                                ? 'bg-[#083344]/90 border-cyan-400 text-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.6)] scale-105 ring-2 ring-offset-2 ring-offset-black ring-cyan-400'
+                                                : 'bg-black/60 border-white/10 text-slate-600 hover:border-cyan-500/50 hover:text-cyan-400 hover:bg-[#083344]/40'
                                                 }`}
                                         >
                                             <i className={`fas fa-user text-xl ${activeRole === 'PLAYER' ? 'animate-pulse' : ''}`}></i>
