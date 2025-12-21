@@ -1,7 +1,9 @@
+'use client'
+
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useAuthStore } from '../store/useAuthStore';
-import { UserRole, AppUser, DrawTime, GameMode } from '../types';
+import { useAuthStore } from '@/store/useAuthStore';
+import { UserRole, AppUser, DrawTime, GameMode } from '@/types';
 import UserCreationForm from './UserCreationForm';
 import DataPurgeCard from './DataPurgeCard';
 import RechargeModal from './RechargeModal';
@@ -15,10 +17,10 @@ import GlobalBetsTable from './GlobalBetsTable';
 import RiskLimitManager from './RiskLimitManager';
 import TopNumbersPanel from './TopNumbersPanel'; 
 import PersonalBetsPanel from './PersonalBetsPanel';
-import { useServerClock } from '../hooks/useServerClock';
-import { formatCurrency } from '../constants';
-import { supabase } from '../lib/supabaseClient';
-import { api } from '../services/edgeApi';
+import { useServerClock } from '@/hooks/useServerClock';
+import { formatCurrency } from '@/constants';
+import { supabase } from '@/lib/supabase/client';
+import { api } from '@/services/api';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 import WinnerOverlay from './WinnerOverlay';
 
@@ -164,8 +166,8 @@ export default function Dashboard() {
   const fetchLists = async () => {
     if (!user || isClient) return;
     setLoadingLists(true);
-    if (isAdmin || isVendor) { const { data } = await supabase.from('app_users').select('*').eq('role', 'Cliente').limit(100); if (data) setPlayers(data as AppUser[]); }
-    if (isAdmin) { const { data } = await supabase.from('app_users').select('*').eq('role', 'Vendedor').limit(100); if (data) setVendors(data as AppUser[]); }
+    if (isAdmin || isVendor) { const { data } = await supabase.from('profiles').select('*').eq('role', 'Cliente').limit(100); if (data) setPlayers(data as AppUser[]); }
+    if (isAdmin) { const { data } = await supabase.from('profiles').select('*').eq('role', 'Vendedor').limit(100); if (data) setVendors(data as AppUser[]); }
     setLoadingLists(false);
   };
 

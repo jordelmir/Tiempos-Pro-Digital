@@ -1,3 +1,5 @@
+'use client'
+
 // components/admin/DataPurgeCard.tsx
 'use client'
 

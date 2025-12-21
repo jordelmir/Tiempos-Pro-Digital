@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../services/edgeApi';
+import { api } from '@/services/api';
 import { DrawTime } from '../types';
 
 export type SalesStatus = 'OPEN' | 'WARNING' | 'CLOSED';

@@ -1,8 +1,10 @@
+'use client'
+
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { useLiveResults } from '../hooks/useLiveResults';
-import { api } from '../services/edgeApi';
-import { useAuthStore } from '../store/useAuthStore';
+import { useLiveResults } from '@/hooks/useLiveResults';
+import { api } from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function TopNumbersPanel() {
     const { history } = useLiveResults();

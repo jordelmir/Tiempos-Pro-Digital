@@ -1,8 +1,10 @@
+'use client'
+
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuthStore } from '../store/useAuthStore';
-import { api } from '../services/edgeApi';
-import { PurgeTarget, PurgeAnalysis } from '../types';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/services/api';
+import { PurgeTarget, PurgeAnalysis } from '@/types';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 
 export default function DataPurgeCard({ theme: parentTheme }: { theme?: any }) {

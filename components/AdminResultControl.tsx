@@ -1,9 +1,11 @@
+'use client'
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { DrawTime } from '../types';
-import { api } from '../services/edgeApi';
-import { useAuthStore } from '../store/useAuthStore';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { DrawTime } from '@/types';
+import { api } from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 import MatrixRain from './ui/MatrixRain';
 

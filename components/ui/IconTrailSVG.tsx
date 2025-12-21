@@ -1,3 +1,5 @@
+'use client'
+
 // components/ui/IconTrailSVG.tsx
 'use client'
 

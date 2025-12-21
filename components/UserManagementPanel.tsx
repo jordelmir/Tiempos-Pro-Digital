@@ -1,9 +1,11 @@
+'use client'
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { AppUser, UserRole } from '../types';
-import { formatCurrency } from '../constants';
+import { AppUser, UserRole } from '@/types';
+import { formatCurrency } from '@/constants';
 import UserControlModal from './UserControlModal';
 import VendorPaymentModal from './VendorPaymentModal';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 
 interface UserManagementPanelProps {

@@ -1,8 +1,10 @@
+'use client'
+
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { formatDate } from '../constants';
-import { AuditLog, AuditSeverity, AuditEventType } from '../types';
+import { supabase } from '@/lib/supabase/client';
+import { formatDate } from '@/constants';
+import { AuditLog, AuditSeverity, AuditEventType } from '@/types';
 
 export default function AuditView() {
   const [logs, setLogs] = useState<AuditLog[]>([]);

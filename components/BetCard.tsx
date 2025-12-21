@@ -1,3 +1,5 @@
+'use client'
+
 // components/BetCard.tsx
 'use client'
 

@@ -1,3 +1,5 @@
+'use client'
+
 // components/admin/AdminResultControl.tsx
 'use client'
 

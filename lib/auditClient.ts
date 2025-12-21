@@ -1,5 +1,5 @@
 
-import { supabase } from './supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 
 // Types mirror the Kotlin backend enums
 export enum AuditSeverity {
@@ -37,7 +37,7 @@ export const auditLogger = {
 
       // En un entorno real, esto iría a una API Route (/api/audit) que a su vez llama al servicio Kotlin.
       // Para esta arquitectura serverless, escribimos en Supabase que tiene el Trigger de Hashing.
-      
+
       const logEntry = {
         actor_id: user?.id, // Puede ser null para acciones del sistema
         session_id: session?.session?.access_token?.slice(-10), // Short hash of session
@@ -54,14 +54,14 @@ export const auditLogger = {
       const { error } = await supabase
         .from('audit_trail') // Usamos la tabla pública mapeada o la segura vía Edge Function
         .insert([
-             {
-                 actor_app_user: user?.id, // Mapping legacy field for now
-                 action: payload.action,
-                 object_type: payload.category,
-                 object_id: payload.target,
-                 payload: payload.details
-                 // El sistema legacy se actualiza al nuevo esquema vía trigger o migración
-             }
+          {
+            actor_app_user: user?.id, // Mapping legacy field for now
+            action: payload.action,
+            object_type: payload.category,
+            object_id: payload.target,
+            payload: payload.details
+            // El sistema legacy se actualiza al nuevo esquema vía trigger o migración
+          }
         ]);
 
       if (error) console.error("Audit Log Error:", error);
@@ -73,10 +73,10 @@ export const auditLogger = {
 
   logCritical: async (action: string, details: any) => {
     await auditLogger.log({
-        action,
-        category: AuditCategory.SYSTEM,
-        severity: AuditSeverity.CRITICAL,
-        details
+      action,
+      category: AuditCategory.SYSTEM,
+      severity: AuditSeverity.CRITICAL,
+      details
     });
   }
 };

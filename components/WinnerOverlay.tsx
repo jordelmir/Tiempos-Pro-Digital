@@ -1,7 +1,9 @@
+'use client'
+
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';
 
 interface WinnerOverlayProps {

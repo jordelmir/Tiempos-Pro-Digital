@@ -1,9 +1,11 @@
+'use client'
+
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { useAuthStore } from '../store/useAuthStore';
-import { formatCurrency, formatDate } from '../constants';
-import { Bet } from '../types';
+import { supabase } from '@/lib/supabase/client';
+import { useAuthStore } from '@/store/useAuthStore';
+import { formatCurrency, formatDate } from '@/constants';
+import { Bet } from '@/types';
 import TicketViewModal from './TicketViewModal';
 
 interface PersonalBetsPanelProps {

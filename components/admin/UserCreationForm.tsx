@@ -1,3 +1,5 @@
+'use client'
+
 // components/admin/UserCreationForm.tsx
 'use client'
 

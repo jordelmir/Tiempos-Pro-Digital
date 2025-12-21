@@ -1,23 +1,6 @@
-
 // Supabase Configuration
-// Supports Vite (import.meta.env) and Vercel System Env (process.env replacement)
-
-// @ts-ignore
-const viteEnv = import.meta.env;
-// @ts-ignore
-const processEnv = typeof process !== 'undefined' ? process.env : {};
-
-export const SUPABASE_URL = 
-  viteEnv?.VITE_SUPABASE_URL || 
-  processEnv?.SUPABASE_URL || 
-  processEnv?.REACT_APP_SUPABASE_URL || 
-  'https://your-project.supabase.co';
-
-export const SUPABASE_ANON_KEY = 
-  viteEnv?.VITE_SUPABASE_ANON_KEY || 
-  processEnv?.SUPABASE_ANON_KEY || 
-  processEnv?.REACT_APP_SUPABASE_ANON_KEY || 
-  'your-anon-key';
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
 
 // Formatters
 export const formatCurrency = (cents: number) => {

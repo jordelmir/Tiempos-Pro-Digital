@@ -1,9 +1,11 @@
+'use client'
+
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useAuthStore } from '../store/useAuthStore';
-import { api } from '../services/edgeApi';
-import { Bet, UserRole, DrawTime, GameMode } from '../types';
-import { formatCurrency, formatDate } from '../constants';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/services/api';
+import { Bet, UserRole, DrawTime, GameMode } from '@/types';
+import { formatCurrency, formatDate } from '@/constants';
 import TicketViewModal from './TicketViewModal';
 import WinnerOverlay from './WinnerOverlay';
 import AnimatedIconUltra from './ui/AnimatedIconUltra';

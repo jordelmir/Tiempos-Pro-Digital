@@ -1,3 +1,5 @@
+'use client'
+
 // components/ui/MatrixRain.tsx
 'use client'
 

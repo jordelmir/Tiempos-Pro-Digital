@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../services/edgeApi';
+import { api } from '@/services/api';
 import { DrawResult, DrawTime } from '../types';
 
 export function useLiveResults() {
