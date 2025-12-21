@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Orbitron, Rajdhani } from "next/font/google";
 import "./globals.css";
 import { AnimationSyncProvider } from "@/context/AnimationSyncContext";
+import { MatrixBackground } from "@/components/MatrixBackground";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         </div>
         <AnimationSyncProvider>
           <div className="relative z-10">
+            <MatrixBackground />
             {children}
           </div>
         </AnimationSyncProvider>
