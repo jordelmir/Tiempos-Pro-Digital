@@ -19,7 +19,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: null
+    errorInfo: null,
   };
 
   /**
@@ -34,7 +34,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
    */
   // Fix: componentDidCatch implementation now correctly accesses inherited setState from React.Component.
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error('Uncaught error:', error, errorInfo);
     // Fix: this.setState is correctly identified as a member of React.Component.
     this.setState({ error, errorInfo });
   }
@@ -47,15 +47,19 @@ export default class ErrorBoundary extends React.Component<Props, State> {
           {/* Background Noise */}
           <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
           <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] bg-repeat opacity-20 pointer-events-none"></div>
-          
+
           <div className="max-w-3xl w-full border-2 border-red-600 bg-[#0a0000] p-8 rounded-lg shadow-[0_0_50px_rgba(220,38,38,0.5)] relative z-10 animate-in zoom-in duration-300">
             <div className="flex items-center gap-4 mb-6 border-b border-red-900/50 pb-4">
               <div className="w-16 h-16 bg-red-600 text-black flex items-center justify-center text-4xl font-bold animate-pulse">
                 <i className="fas fa-biohazard"></i>
               </div>
               <div>
-                <h1 className="text-4xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_red]">SYSTEM FAILURE</h1>
-                <p className="text-xs text-red-400 uppercase tracking-[0.5em]">KERNEL PANIC // RUNTIME EXCEPTION</p>
+                <h1 className="text-4xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_red]">
+                  SYSTEM FAILURE
+                </h1>
+                <p className="text-xs text-red-400 uppercase tracking-[0.5em]">
+                  KERNEL PANIC // RUNTIME EXCEPTION
+                </p>
               </div>
             </div>
 
@@ -69,21 +73,24 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             </div>
 
             <div className="flex gap-4">
-              <button 
-                onClick={() => window.location.href = '/'}
+              <button
+                onClick={() => (window.location.href = '/')}
                 className="flex-1 bg-red-600 hover:bg-white hover:text-red-600 text-black font-black uppercase py-4 rounded transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] tracking-widest"
               >
                 REINICIAR SISTEMA (HARD RELOAD)
               </button>
-              <button 
-                onClick={() => { localStorage.clear(); window.location.reload(); }}
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
                 className="px-6 border border-red-600 text-red-600 hover:bg-red-600 hover:text-black font-bold uppercase py-4 rounded transition-all tracking-widest"
               >
                 PURGAR CACHE
               </button>
             </div>
           </div>
-          
+
           <div className="absolute bottom-8 text-[10px] text-red-900 uppercase tracking-[1em] animate-pulse">
             PHRONT MAESTRO PROTECTION PROTOCOL
           </div>
