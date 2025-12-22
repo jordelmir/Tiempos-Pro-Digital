@@ -26,7 +26,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     // --- PROTOCOLO DE GANADORES SECUENCIAL ---
     const [winnerQueue, setWinnerQueue] = useState<any[]>([]);
     const [currentWinner, setCurrentWinner] = useState<any>(null);
-    const prevBetsRef = useRef<Map<string, string>>(new Map()); 
+    const prevBetsRef = useRef<Map<string, string>>(new Map());
 
     // FILTERS & SEARCH
     const [timeFilter, setTimeFilter] = useState<string>('ALL');
@@ -51,7 +51,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     const fetchBets = async () => {
         if (!user) return;
         if (bets.length === 0) setLoading(true);
-        
+
         try {
             const res = await api.getGlobalBets({
                 role: user.role,
@@ -62,14 +62,14 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
             if (res.data) {
                 const incomingBets = res.data.bets as any[];
                 const newWinsDetected: any[] = [];
-                
+
                 incomingBets.forEach(bet => {
                     const oldStatus = prevBetsRef.current.get(bet.id);
                     // Solo activar si el usuario es el dueño de la apuesta y el estado cambió a WON
                     if (bet.status === 'WON' && oldStatus === 'PENDING' && bet.user_id === user.id) {
                         const multiplier = bet.mode.includes('200x') ? 200 : 90;
                         const realPrizeValue = (bet.amount_bigint * multiplier) / 100;
-                        
+
                         newWinsDetected.push({
                             amount: realPrizeValue,
                             number: bet.numbers,
@@ -100,7 +100,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
         fetchBets();
         const interval = setInterval(fetchBets, 15000);
         return () => clearInterval(interval);
-    }, [user, timeFilter, statusFilter, refreshTrigger]); 
+    }, [user, timeFilter, statusFilter, refreshTrigger]);
 
     // --- DATA PROCESSING ENGINE ---
     const processedBets = useMemo(() => {
@@ -108,8 +108,8 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
 
         if (entitySearch) {
             const query = entitySearch.toLowerCase();
-            result = result.filter(b => 
-                b.user_name?.toLowerCase().includes(query) || 
+            result = result.filter(b =>
+                b.user_name?.toLowerCase().includes(query) ||
                 b.ticket_code?.toLowerCase().includes(query) ||
                 b.user_id.toLowerCase().includes(query)
             );
@@ -170,14 +170,14 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     return (
         <div className="relative group animate-in fade-in duration-500 w-full">
             <TicketViewModal isOpen={!!selectedBet} onClose={() => setSelectedBet(null)} bet={selectedBet} />
-            
+
             {/* OVERLAY DE GANADORES CENTRALIZADO */}
             <WinnerOverlay isOpen={!!currentWinner} onClose={() => setCurrentWinner(null)} data={currentWinner} />
 
             <div className="absolute -inset-1 bg-cyber-blue rounded-[2rem] opacity-20 blur-2xl animate-pulse pointer-events-none"></div>
 
             <div className="relative bg-[#050a14] border-2 border-cyber-blue rounded-3xl overflow-hidden shadow-2xl z-10">
-                
+
                 {/* HEADER & FILTERS */}
                 <div className="border-b border-white/10 bg-[#02040a]/90 backdrop-blur-xl p-6">
                     <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-6">
@@ -200,8 +200,8 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                             <div className="absolute -inset-1 bg-cyber-neon/20 rounded-xl blur opacity-0 group-focus-within/search:opacity-100 transition-opacity"></div>
                             <div className="relative flex items-center bg-black border border-white/10 rounded-xl overflow-hidden shadow-inner">
                                 <div className="pl-4 text-slate-500"><i className="fas fa-search text-xs"></i></div>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={entitySearch}
                                     onChange={e => setEntitySearch(e.target.value)}
                                     placeholder="Buscar por ID, Vendedor o Hash..."
@@ -267,10 +267,21 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                                     const isWin = bet.status === 'WON';
                                     const isPending = bet.status === 'PENDING';
                                     const isPlayer = bet.origin === 'Jugador';
-                                    const multiplier = bet.mode.includes('200x') ? 200 : 90;
+
+                                    // Hack de compatibilidad para evitar errores de UUID en BD
+                                    let displayDraw = bet.draw_id;
+                                    let realMode = bet.mode;
+
+                                    if (bet.mode && bet.mode.includes(':::')) {
+                                        const parts = bet.mode.split(':::');
+                                        displayDraw = parts[0];
+                                        realMode = parts[1];
+                                    }
+
+                                    const multiplier = realMode.includes('200x') ? 200 : 90;
                                     const totalPrize = bet.amount_bigint * multiplier;
-                                    const isReventadoMode = bet.mode.includes('200x');
-                                    
+                                    const isReventadoMode = realMode.includes('200x');
+
                                     return (
                                         <tr key={bet.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                             <td className="p-4 pl-6">
@@ -293,7 +304,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                                             </td>
                                             <td className="p-4 text-center">
                                                 <div className="text-[9px] text-slate-400 uppercase tracking-wider bg-white/5 px-2 py-1 rounded border border-white/10 inline-block">
-                                                    {bet.draw_id?.split(' ')[0]}
+                                                    {displayDraw?.split(' ')[0] || '---'}
                                                 </div>
                                             </td>
                                             <td className="p-4 text-center">
@@ -304,15 +315,14 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                                             <td className="p-4 text-right font-bold text-white text-sm">
                                                 {formatCurrency(bet.amount_bigint)}
                                             </td>
-                                            <td className={`p-4 text-right font-black text-sm ${isWin ? 'text-cyber-success text-glow-green drop-shadow-[0_0_8px_rgba(10,255,96,0.5)] animate-pulse' : 'text-slate-700'}`}>
+                                            <td className={`p-4 text-right font-black text-sm ${isWin ? 'text-[#39FF14] text-glow-green drop-shadow-[0_0_8px_rgba(57,255,20,0.5)] animate-pulse' : 'text-slate-700'}`}>
                                                 {isWin ? formatCurrency(totalPrize) : formatCurrency(totalPrize)}
                                             </td>
                                             <td className="p-4 text-center">
-                                                <span className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase transition-all duration-300 ${
-                                                    isWin ? 'bg-green-900/30 text-green-400 border-green-500/50 shadow-neon-green' : 
-                                                    isPending ? 'bg-blue-900/30 text-blue-400 border-blue-500/50' : 
-                                                    'bg-red-900/10 text-slate-600 border-slate-800'
-                                                }`}>
+                                                <span className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase transition-all duration-300 ${isWin ? 'bg-green-900/30 text-green-400 border-green-500/50 shadow-neon-green' :
+                                                    isPending ? 'bg-blue-900/30 text-blue-400 border-blue-500/50' :
+                                                        'bg-red-900/10 text-slate-600 border-slate-800'
+                                                    }`}>
                                                     {isWin ? 'GANADOR' : isPending ? 'EN JUEGO' : 'CERRADO'}
                                                 </span>
                                             </td>
@@ -338,7 +348,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                     </div>
 
                     <div className="flex gap-2 order-1 md:order-2">
-                        <button 
+                        <button
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1 || loading}
                             className="w-10 h-10 md:w-auto md:px-4 bg-black border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center"
@@ -350,8 +360,8 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                             {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                                 const p = i + 1;
                                 return (
-                                    <button 
-                                        key={p} 
+                                    <button
+                                        key={p}
                                         onClick={() => setCurrentPage(p)}
                                         className={`w-10 h-10 rounded-lg text-[10px] font-bold border transition-all ${currentPage === p ? 'bg-cyber-blue border-cyber-blue text-white shadow-neon-blue' : 'bg-black border-white/5 text-slate-500 hover:text-white hover:border-white/20'}`}
                                     >
@@ -361,7 +371,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
                             })}
                         </div>
 
-                        <button 
+                        <button
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages || totalPages === 0 || loading}
                             className="w-10 h-10 md:w-auto md:px-4 bg-black border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center"
@@ -372,8 +382,8 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
 
                     <div className="hidden xl:flex items-center gap-3 order-3">
                         <span className="text-[10px] font-mono text-slate-600 uppercase">Buffer</span>
-                        <select 
-                            value={pageSize} 
+                        <select
+                            value={pageSize}
                             onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
                             className="bg-black border border-white/10 rounded px-2 py-1.5 text-[10px] text-white focus:outline-none focus:border-cyber-blue cursor-pointer"
                         >
@@ -386,7 +396,7 @@ export default function GlobalBetsTable({ onRefresh, refreshTrigger }: GlobalBet
     );
 }
 
-const SortableHeader = ({ label, field, current, onSort, className = "" }: { label: string, field: SortField, current: {key: string, order: string}, onSort: (f: SortField) => void, className?: string }) => {
+const SortableHeader = ({ label, field, current, onSort, className = "" }: { label: string, field: SortField, current: { key: string, order: string }, onSort: (f: SortField) => void, className?: string }) => {
     const isActive = current.key === field;
     return (
         <th className={`${className} cursor-pointer hover:bg-white/5 transition-colors group/header`} onClick={() => onSort(field)}>
