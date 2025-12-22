@@ -5,7 +5,7 @@
 export {};
 declare const Deno: any;
 const SafeDeno = typeof Deno !== 'undefined' ? Deno : { env: { get: () => '' } };
-const serve = (handler: any) => {}; 
+const serve = (handler: any) => {};
 const createClient = (url: string, key: string) => ({ rpc: () => {} });
 
 const SUPABASE_URL = SafeDeno.env.get('SUPABASE_URL')!;
@@ -22,13 +22,13 @@ serve(async (req: any) => {
       p_amount: amount_bigint,
       p_type: type,
       p_reference_id: reference_id,
-      p_actor: actor_id
+      p_actor: actor_id,
     });
 
     if (error) throw error;
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  } catch (err:any) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ message: err.message }), { status: 400 });
   }
 });

@@ -1,20 +1,18 @@
-
-
 export enum UserRole {
   SuperAdmin = 'SuperAdmin',
   Vendedor = 'Vendedor',
-  Cliente = 'Cliente'
+  Cliente = 'Cliente',
 }
 
 export enum DrawTime {
   MEDIODIA = 'Mediodía (12:55)',
   TARDE = 'Tarde (16:30)',
-  NOCHE = 'Noche (19:30)'
+  NOCHE = 'Noche (19:30)',
 }
 
 export enum GameMode {
   TIEMPOS = 'Nuevos Tiempos (90x)',
-  REVENTADOS = 'Reventados (200x)'
+  REVENTADOS = 'Reventados (200x)',
 }
 
 export interface AppUser {
@@ -34,7 +32,7 @@ export interface AppUser {
   issuer_id?: string;
   created_at: string;
   updated_at: string;
-  active_numbers?: string[]; 
+  active_numbers?: string[];
   recent_sale?: {
     target: string;
     amount: number;
@@ -72,7 +70,7 @@ export enum AuditSeverity {
   SUCCESS = 'SUCCESS',
   WARNING = 'WARNING',
   CRITICAL = 'CRITICAL',
-  FORENSIC = 'FORENSIC'
+  FORENSIC = 'FORENSIC',
 }
 
 export enum AuditEventType {
@@ -90,7 +88,7 @@ export enum AuditEventType {
   SYSTEM_INTEGRITY = 'SYSTEM_INTEGRITY',
   AI_OPERATION = 'AI_OPERATION',
   MAINTENANCE_OP = 'MAINTENANCE_OP',
-  FINANCIAL_OP = 'FINANCIAL_OP'
+  FINANCIAL_OP = 'FINANCIAL_OP',
 }
 
 export interface AuditLog {
@@ -134,55 +132,60 @@ export interface DrawResultPayload {
 }
 
 export interface DrawResult {
-    id: string;
-    date: string;
-    drawTime: DrawTime;
-    winningNumber: string;
-    isReventado: boolean;
-    reventadoNumber?: string;
-    status: 'OPEN' | 'CLOSED' | 'VERIFYING';
-    created_at: string;
+  id: string;
+  date: string;
+  drawTime: DrawTime;
+  winningNumber: string;
+  isReventado: boolean;
+  reventadoNumber?: string;
+  status: 'OPEN' | 'CLOSED' | 'VERIFYING';
+  created_at: string;
 }
 
 export interface WeeklyDataStats {
-    year: number;
-    weekNumber: number;
-    recordCount: number;
-    startDate: string;
-    endDate: string;
-    sizeEstimate: string;
+  year: number;
+  weekNumber: number;
+  recordCount: number;
+  startDate: string;
+  endDate: string;
+  sizeEstimate: string;
 }
 
 export interface SystemSetting {
-    key: string;
-    value: any;
-    description: string;
-    group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
-    updated_at: string;
-    updated_by: string;
-    is_locked?: boolean;
+  key: string;
+  value: any;
+  description: string;
+  group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
+  updated_at: string;
+  updated_by: string;
+  is_locked?: boolean;
 }
 
 export interface MasterCatalogItem {
-    id: string;
-    category: string;
-    code: string;
-    label: string;
-    status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
-    metadata?: any;
-    order_index: number;
+  id: string;
+  category: string;
+  code: string;
+  label: string;
+  status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
+  metadata?: any;
+  order_index: number;
 }
 
-export type PurgeTarget = 'BETS_HISTORY' | 'AUDIT_LOGS' | 'RESULTS_HISTORY' | 'LEDGER_OLD' | 'DEEP_CLEAN';
+export type PurgeTarget =
+  | 'BETS_HISTORY'
+  | 'AUDIT_LOGS'
+  | 'RESULTS_HISTORY'
+  | 'LEDGER_OLD'
+  | 'DEEP_CLEAN';
 
 export interface PurgeAnalysis {
-    target: PurgeTarget;
-    cutoffDate: string;
-    recordCount: number;
-    estimatedSizeKB: number;
-    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-    canProceed: boolean;
-    description: string;
+  target: PurgeTarget;
+  cutoffDate: string;
+  recordCount: number;
+  estimatedSizeKB: number;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  canProceed: boolean;
+  description: string;
 }
 
 // Added missing RiskLimit export
