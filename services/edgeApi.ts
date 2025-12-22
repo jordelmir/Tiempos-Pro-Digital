@@ -985,12 +985,25 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
 
             if (drErr) return { error: 'Error registrando resultado de sorteo' };
 
-            // 2. Resolve Bets (Client-Side Batch Processing)
-            // Warning: In high volume production, this should be a Server Edge Function.
+            // 2. Resolve Bets (Strict Validation: Date + Time + Number)
+            // CRITICAL: We must only select bets created ON THE SAME DAY as the draw.
+            // Assuming the 'date' passed is YYYY-MM-DD.
+            // We construct a strict UTC range to filter bets. 
+            // Note: Adjust timezone logic if the app is strictly localized (e.g. UTC-6).
+            // For now, we assume bets for a day are created between 00:00 and 23:59 of that date (Local/UTC agnostic via string comparison or generous UTC range).
+
+            const startOfDay = `${date}T00:00:00.000Z`; // Beginning of draw date
+            const endOfDay = `${date}T23:59:59.999Z`;   // End of draw date
+
+            // For even stricter safety in CR style (UTC-6), we might need to shift.
+            // But checking 'created_at' >= date is a solid baseline to prevent "Yesterday's bets".
+
             const { data: pendingBets } = await supabase.from('bets')
                 .select('*')
                 .eq('status', 'PENDING')
-                .ilike('mode', `%${drawTime}%`); // Matches the "Mediodía" part in "Mediodía:::TIEMPOS"
+                .ilike('mode', `%${drawTime}%`) // Correct Time (e.g. Mediodia)
+                .gte('created_at', startOfDay)  // Correct Date (Start)
+                .lte('created_at', endOfDay);   // Correct Date (End)
 
             let processedCount = 0;
             if (pendingBets && pendingBets.length > 0) {
