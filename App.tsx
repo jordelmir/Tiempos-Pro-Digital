@@ -1,5 +1,6 @@
 import React, { useEffect, PropsWithChildren } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Layout } from './components/Layout';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
       </HashRouter>
+      <SpeedInsights />
     </>
   );
 }
