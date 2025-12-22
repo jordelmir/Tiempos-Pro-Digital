@@ -64,19 +64,19 @@ export default function CountdownTimer({ role }: CountdownTimerProps) {
     const offset = circumference - (progress * circumference);
 
     return (
-        <div className={`relative group h-full overflow-hidden rounded-3xl bg-[#02040a] border-2 transition-all duration-700 ${theme.border} ${theme.shadow}`}>
-            
+        <div className={`relative group h-full min-h-[180px] overflow-hidden rounded-3xl bg-[#02040a] border-2 transition-all duration-700 ${theme.border} ${theme.shadow}`}>
+
             {/* --- REACTOR CORE BACKLIGHT --- */}
-            <div className={`absolute top-1/2 -translate-y-1/2 right-0 w-1/2 h-full opacity-20 blur-[60px] animate-pulse transition-colors duration-1000 ${theme.bg.replace('/40','').replace('950','600')}`}></div>
-            
+            <div className={`absolute top-1/2 -translate-y-1/2 right-0 w-1/2 h-full opacity-20 blur-[60px] animate-pulse transition-colors duration-1000 ${theme.bg.replace('/40', '').replace('950', '600')}`}></div>
+
             {/* Grid Texture */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:20px_20px] pointer-events-none"></div>
 
             <div className="relative z-10 flex h-full p-6">
-                
+
                 {/* --- LEFT: TELEMETRY DATA --- */}
                 <div className="flex-1 flex flex-col justify-between">
-                    
+
                     {/* Status Badge */}
                     <div>
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border bg-black/60 backdrop-blur-sm mb-4 transition-all duration-500 ${theme.border} ${theme.color}`}>
@@ -109,7 +109,7 @@ export default function CountdownTimer({ role }: CountdownTimerProps) {
 
                 {/* --- RIGHT: CHRONOMETRIC REACTOR --- */}
                 <div className="w-32 md:w-40 relative flex items-center justify-center">
-                    
+
                     {/* The Reactor SVG */}
                     <svg className="w-full h-full overflow-visible" viewBox="0 0 200 200">
                         <defs>
@@ -141,13 +141,13 @@ export default function CountdownTimer({ role }: CountdownTimerProps) {
 
                         {/* MAIN PROGRESS ARC */}
                         {status !== 'CLOSED' && (
-                            <circle 
-                                cx="100" cy="100" r={radius} 
-                                fill="none" 
-                                stroke="url(#progressGradient)" 
-                                strokeWidth="6" 
+                            <circle
+                                cx="100" cy="100" r={radius}
+                                fill="none"
+                                stroke="url(#progressGradient)"
+                                strokeWidth="6"
                                 strokeLinecap="round"
-                                strokeDasharray={circumference} 
+                                strokeDasharray={circumference}
                                 strokeDashoffset={offset}
                                 filter="url(#glow)"
                                 transform="rotate(-90 100 100)"
