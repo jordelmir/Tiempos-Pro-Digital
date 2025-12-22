@@ -627,6 +627,22 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
                 target_resource: target,
                 ip_address: '0.0.0.0' // Client-side limitation
             });
+
+            // DUAL WRITE TO MONGODB (Disabled: Missing Keys)
+            /*
+            try {
+               fetch('/api/audit', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify({ logEntry: {
+                       actor_id: session.user.id,
+                       action, type, severity, metadata,
+                       target_resource: target,
+                       timestamp: new Date()
+                   }})
+               }).catch(err => console.error("Mongo Audit Failed", err));
+            } catch (ignore) {}
+            */
         } catch (e) { console.warn("Audit Log Failed", e); }
     };
 
@@ -663,7 +679,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
 
             // Insert Bet
             // Insert Bet
-            // CRITICAL FIX: We store draw_id inside 'mode' text field because draw_id column expects UUID 
+            // CRITICAL FIX: We store draw_id inside 'mode' text field because draw_id column expects UUID
             // and we only have string enum. This prevents "invalid input syntax for type uuid" error.
             const { data: bet, error: bErr } = await supabase.from('bets').insert({
                 ticket_code: ticketCode,
@@ -1025,14 +1041,49 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
 
         if (fn === 'getLiveResults') {
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // 12:00 AM Today
+            today.setHours(0, 0, 0, 0);
+
+            // REDIS CACHE CHECK (Disabled: Missing Keys)
+            /*
+            try {
+                const cacheRes = await fetch(`/api/cache?key=live_results_${today.toISOString().split('T')[0]}`);
+                if (cacheRes.ok) {
+                    const cachedData = await cacheRes.json();
+                    if (cachedData) return { data: cachedData };
+                }
+            } catch (ignore) { }
+            */
 
             const { data } = await supabase.from('draw_results')
                 .select('*')
-                .gte('created_at', today.toISOString()) // DAILY RESET: Filter only today's results
+                .gte('created_at', today.toISOString())
                 .order('date', { ascending: false });
 
-            return { data: { results: data || [], history: data || [] } as any };
+            const resultPayload = { results: data || [], history: data || [] };
+
+            // REDIS CACHE SET (Disabled: Missing Keys)
+            /*
+            try {
+                await fetch(`/api/cache?key=live_results_${today.toISOString().split('T')[0]}&value=${JSON.stringify(resultPayload)}&ttl=60`, { method: 'POST' });
+            } catch (ignore) { }
+            */
+
+            return { data: resultPayload as any };
+        }
+
+        if (fn === 'createPaymentIntent') {
+            try {
+                const res = await fetch('/api/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: body.amount, currency: 'crc' })
+                });
+                const data = await res.json();
+                if (data.error) return { error: data.error };
+                return { data: { clientSecret: data.clientSecret, id: 'pi_' + Date.now() } as any };
+            } catch (e: any) {
+                return { error: e.message };
+            }
         }
 
         if (fn === 'getWeeklyDataStats') {
@@ -1079,4 +1130,5 @@ export const api = {
     getWeeklyDataStats: async (payload: { year: number }) => invokeEdgeFunction<{ stats: WeeklyDataStats[] }>('getWeeklyDataStats', payload),
     purgeWeeklyData: async (payload: { year: number; weekNumber: number; confirmation: string; actor_id: string }) => invokeEdgeFunction<{ success: boolean; message: string }>('purgeWeeklyData', payload),
     generateAIAnalysis: async (payload: { drawTime: string }) => invokeEdgeFunction<any>('generateAIAnalysis', payload),
+    createPaymentIntent: async (payload: { amount: number }) => invokeEdgeFunction<{ clientSecret: string; id: string }>('createPaymentIntent', payload),
 };
