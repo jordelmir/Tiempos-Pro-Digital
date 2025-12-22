@@ -726,9 +726,32 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         }
 
         if (fn === 'updateGlobalMultiplier') {
-            await supabase.from('system_settings').upsert({ key: 'MULTIPLIER_TIEMPOS', value: String(body.baseValue), type: 'number', updated_at: new Date().toISOString() });
-            await supabase.from('system_settings').upsert({ key: 'MULTIPLIER_REVENTADOS', value: String(body.reventadosValue), type: 'number', updated_at: new Date().toISOString() });
-            return { data: { success: true } as any };
+            try {
+                // Fix: Removed non-existent 'type' column. Value is stored as JSONB.
+                const { error: e1 } = await supabase.from('system_settings').upsert({
+                    key: 'MULTIPLIER_TIEMPOS',
+                    value: body.baseValue, // Pass raw value, Supabase/JSONB handles it
+                    updated_at: new Date().toISOString()
+                });
+
+                const { error: e2 } = await supabase.from('system_settings').upsert({
+                    key: 'MULTIPLIER_REVENTADOS',
+                    value: body.reventadosValue,
+                    updated_at: new Date().toISOString()
+                });
+
+                if (e1 || e2) throw new Error(e1?.message || e2?.message);
+
+                await logAudit('UPDATE_SETTINGS', 'SYSTEM_CONFIG', 'WARNING', {
+                    new_mult_tiempos: body.baseValue,
+                    new_mult_reventados: body.reventadosValue
+                }, 'Global Settings');
+
+                return { data: { success: true } as any };
+            } catch (e: any) {
+                console.error("Update Settings Failed:", e);
+                return { error: 'Error actualizando configuración global' };
+            }
         }
 
         // 4. USERS
