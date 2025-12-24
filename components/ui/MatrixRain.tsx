@@ -20,10 +20,16 @@ const MatrixRain = memo(
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Refs to track state without triggering re-renders
-    const stateRef = useRef({
+    const stateRef = useRef<{
+      width: number;
+      height: number;
+      drops: number[];
+      columns: number;
+      animationId: number;
+    }>({
       width: 0,
       height: 0,
-      drops: [] as number[],
+      drops: [],
       columns: 0,
       animationId: 0,
     });
@@ -88,7 +94,7 @@ const MatrixRain = memo(
       const draw = () => {
         // Fade effect (Trail)
         // Note: Using fillRect with low opacity creates the trail
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.1 * speed})`;
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.05 * brightness})`;
         ctx.fillRect(0, 0, stateRef.current.width, stateRef.current.height);
 
         ctx.font = `bold ${fontSize}px monospace`;

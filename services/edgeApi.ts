@@ -1,3 +1,4 @@
+import { Session } from '@supabase/supabase-js';
 import { supabase, MockDB } from '../lib/supabaseClient';
 import {
   ApiResponse,
@@ -16,6 +17,7 @@ import {
   PurgeTarget,
   PurgeAnalysis,
   LedgerTransaction,
+  RiskLimit,
 } from '../types';
 import { formatCurrency } from '../constants';
 
@@ -27,7 +29,7 @@ const generateTicketCode = (prefix: string) => {
   for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return `${prefix}-${result.substring(0, 3)}-${result.substring(3, 6)}`;
+  return `${prefix} -${result.substring(0, 3)} -${result.substring(3, 6)} `;
 };
 
 async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promise<ApiResponse<T>> {
@@ -38,7 +40,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
 
     // --- DEMO MODE INTERCEPTOR (THE GAME ENGINE) ---
     if (
-      (supabase as any).supabaseUrl === 'https://demo.local' ||
+      (supabase as unknown as { supabaseUrl: string }).supabaseUrl === 'https://demo.local' ||
       !session?.access_token.startsWith('ey')
     ) {
       await new Promise((r) => setTimeout(r, 300));
@@ -59,36 +61,42 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
       }
 
       if (functionName === 'updateGlobalMultiplier') {
+        const { baseValue, reventadosValue, actor_id } = body as {
+          baseValue: number;
+          reventadosValue: number;
+          actor_id: string;
+        };
         MockDB.saveSettings({
-          multiplier_tiempos: body.baseValue,
-          multiplier_reventados: body.reventadosValue,
+          multiplier_tiempos: baseValue,
+          multiplier_reventados: reventadosValue,
         });
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id,
           action: 'UPDATE_GLOBAL_MULTIPLIER',
           type: AuditEventType.ADMIN_SETTINGS,
           severity: AuditSeverity.WARNING,
-          metadata: { base: body.baseValue, rev: body.reventadosValue },
+          metadata: { base: baseValue, rev: reventadosValue },
         });
         return { data: { success: true } };
       }
 
       // 2. USER MANAGEMENT & TRANSACTIONS
       if (functionName === 'createUser') {
+        const params = body as AppUser & { balance_bigint?: number; issuer_id?: string };
         const newUser = {
-          ...body,
-          id: `user-${Date.now()}`,
-          auth_uid: `auth-${Date.now()}`,
+          ...params,
+          id: `user - ${Date.now()} `,
+          auth_uid: `auth - ${Date.now()} `,
           status: 'Active',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          balance_bigint: body.balance_bigint || 0,
+          balance_bigint: params.balance_bigint || 0,
         };
         MockDB.saveUser(newUser);
 
         if (newUser.balance_bigint > 0) {
           MockDB.addTransaction({
-            id: `tx-init-${newUser.id}`,
+            id: `tx - init - ${newUser.id} `,
             user_id: newUser.id,
             amount_bigint: newUser.balance_bigint,
             balance_before: 0,
@@ -100,7 +108,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         }
 
         MockDB.addAudit({
-          actor_id: body.issuer_id || 'system',
+          actor_id: params.issuer_id || 'system',
           action: 'CREATE_USER',
           type: AuditEventType.IDENTITY_REGISTER,
           severity: AuditSeverity.INFO,
@@ -112,118 +120,135 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
 
       if (functionName === 'checkIdentity') {
         const users = MockDB.getUsers();
-        const exists = users.find((u: AppUser) => u.cedula === body.cedula);
+        const exists = users.find((u: AppUser) => u.cedula === (body as any).cedula);
         return { data: exists || null };
       }
 
       if (functionName === 'rechargeUser') {
+        const { target_user_id, amount, actor_id } = body as {
+          target_user_id: string;
+          amount: number;
+          actor_id: string;
+        };
         const users = MockDB.getUsers();
-        const user = users.find((u: AppUser) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === target_user_id);
         if (!user) return { error: 'Usuario no encontrado' };
 
         const oldBalance = user.balance_bigint;
-        const newBalance = oldBalance + body.amount;
+        const newBalance = oldBalance + amount;
 
         user.balance_bigint = newBalance;
         user.updated_at = new Date().toISOString();
         MockDB.saveUser(user);
 
         MockDB.addTransaction({
-          id: `tx-rech-${Date.now()}`,
+          id: `tx - rech - ${Date.now()} `,
           user_id: user.id,
-          amount_bigint: body.amount,
+          amount_bigint: amount,
           balance_before: oldBalance,
           balance_after: newBalance,
           type: 'CREDIT',
-          reference_id: `DEP-${Date.now().toString().slice(-6)}`,
-          meta: { description: 'Recarga de Saldo', actor: body.actor_id },
+          reference_id: `DEP - ${Date.now().toString().slice(-6)} `,
+          meta: { description: 'Recarga de Saldo', actor: actor_id },
           created_at: new Date().toISOString(),
         });
 
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id,
           action: 'USER_RECHARGE',
           type: AuditEventType.TX_DEPOSIT,
           severity: AuditSeverity.INFO,
           target_resource: user.id,
-          metadata: { amount: body.amount, new_balance: newBalance },
+          metadata: { amount, new_balance: newBalance },
         });
 
-        return { data: { new_balance: newBalance, tx_id: `TX-${Date.now()}` } };
+        return { data: { new_balance: newBalance, tx_id: `TX - ${Date.now()} ` } };
       }
 
       if (functionName === 'withdrawUser') {
+        const { target_user_id, amount, actor_id } = body as {
+          target_user_id: string;
+          amount: number;
+          actor_id: string;
+        };
         const users = MockDB.getUsers();
-        const user = users.find((u: AppUser) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === target_user_id);
         if (!user) return { error: 'Usuario no encontrado' };
 
-        if (user.balance_bigint < body.amount) return { error: 'Fondos insuficientes' };
+        if (user.balance_bigint < amount) return { error: 'Fondos insuficientes' };
 
         const oldBalance = user.balance_bigint;
-        const newBalance = oldBalance - body.amount;
+        const newBalance = oldBalance - amount;
 
         user.balance_bigint = newBalance;
         user.updated_at = new Date().toISOString();
         MockDB.saveUser(user);
 
-        const txId = `TX-WD-${Date.now().toString().slice(-6)}`;
+        const txId = `TX - WD - ${Date.now().toString().slice(-6)} `;
 
         MockDB.addTransaction({
-          id: `tx-with-${Date.now()}`,
+          id: `tx -with-${Date.now()} `,
           user_id: user.id,
-          amount_bigint: -body.amount,
+          amount_bigint: -amount,
           balance_before: oldBalance,
           balance_after: newBalance,
           type: 'DEBIT',
           reference_id: txId,
-          meta: { description: 'Retiro de Fondos', actor: body.actor_id },
+          meta: { description: 'Retiro de Fondos', actor: actor_id },
           created_at: new Date().toISOString(),
         });
 
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id,
           action: 'USER_WITHDRAWAL',
           type: AuditEventType.TX_WITHDRAWAL,
           severity: AuditSeverity.WARNING,
           target_resource: user.id,
-          metadata: { amount: body.amount, new_balance: newBalance },
+          metadata: { amount, new_balance: newBalance },
         });
 
         return { data: { new_balance: newBalance, tx_id: txId } };
       }
 
       if (functionName === 'payVendor') {
+        const { target_user_id, amount, concept, notes, actor_id } = body as {
+          target_user_id: string;
+          amount: number;
+          concept: string;
+          notes: string;
+          actor_id: string;
+        };
         const users = MockDB.getUsers();
-        const user = users.find((u: AppUser) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === target_user_id);
         if (!user) return { error: 'Vendedor no encontrado' };
 
         const oldBalance = user.balance_bigint;
-        const newBalance = oldBalance + body.amount;
+        const newBalance = oldBalance + amount;
 
         user.balance_bigint = newBalance;
         MockDB.saveUser(user);
 
-        const txCode = `PAY-${Date.now().toString().slice(-6)}`;
+        const txCode = `PAY - ${Date.now().toString().slice(-6)} `;
 
         MockDB.addTransaction({
-          id: `tx-pay-${Date.now()}`,
+          id: `tx - pay - ${Date.now()} `,
           user_id: user.id,
-          amount_bigint: body.amount,
+          amount_bigint: amount,
           balance_before: oldBalance,
           balance_after: newBalance,
           type: 'COMMISSION_PAYOUT',
           reference_id: txCode,
-          meta: { description: body.concept, notes: body.notes },
+          meta: { description: concept, notes },
           created_at: new Date().toISOString(),
         });
 
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id,
           action: 'VENDOR_PAYMENT',
           type: AuditEventType.FINANCIAL_OP,
           severity: AuditSeverity.CRITICAL,
           target_resource: user.id,
-          metadata: { amount: body.amount, concept: body.concept },
+          metadata: { amount, concept },
         });
 
         return { data: { ticket_code: txCode } };
@@ -231,13 +256,13 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
 
       if (functionName === 'updateUserStatus') {
         const users = MockDB.getUsers();
-        const user = users.find((u: AppUser) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === (body as any).target_user_id);
         if (user) {
-          user.status = body.status;
+          user.status = (body as any).status;
           MockDB.saveUser(user);
           MockDB.addAudit({
-            actor_id: body.actor_id,
-            action: body.status === 'Active' ? 'USER_UNBLOCK' : 'USER_BLOCK',
+            actor_id: (body as any).actor_id,
+            action: (body as any).status === 'Active' ? 'USER_UNBLOCK' : 'USER_BLOCK',
             type: AuditEventType.ADMIN_BLOCK,
             severity: AuditSeverity.WARNING,
             target_resource: user.id,
@@ -248,15 +273,15 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
       }
 
       if (functionName === 'deleteUser') {
-        if (body.confirmation !== 'ELIMINAR NODO')
+        if ((body as any).confirmation !== 'ELIMINAR NODO')
           return { error: 'Frase de confirmación incorrecta' };
-        MockDB.deleteUser(body.target_user_id);
+        MockDB.deleteUser((body as any).target_user_id);
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id: (body as any).actor_id,
           action: 'USER_DELETE',
           type: AuditEventType.ADMIN_PURGE,
           severity: AuditSeverity.CRITICAL,
-          target_resource: body.target_user_id,
+          target_resource: (body as any).target_user_id,
         });
         return { data: { success: true } };
       }
@@ -268,11 +293,11 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         const user = users.find((u: AppUser) => u.auth_uid === authData.user?.id);
 
         if (!user) return { error: 'Usuario no autenticado' };
-        if (user.balance_bigint < body.amount) return { error: 'Saldo insuficiente' };
+        if (user.balance_bigint < (body as any).amount) return { error: 'Saldo insuficiente' };
 
         const limits = MockDB.getLimits();
         const limitObj = limits.find(
-          (l: any) => l.number === body.numbers && l.draw_type === body.draw_id
+          (l: RiskLimit) => l.number === (body as any).numbers && l.draw_type === (body as any).draw_id
         );
 
         const settingsList = MockDB.getSettingsList();
@@ -291,46 +316,46 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         const bets = MockDB.getBets();
         const currentExposure = bets
           .filter(
-            (b: any) =>
-              b.numbers === body.numbers && b.draw_id === body.draw_id && b.status === 'PENDING'
+            (b: Bet) =>
+              b.numbers === (body as any).numbers && b.draw_id === (body as any).draw_id && b.status === 'PENDING'
           )
           .reduce((acc: number, b: Bet) => acc + b.amount_bigint, 0);
 
-        if (limit !== -1 && currentExposure + body.amount > limit) {
+        if (limit !== -1 && currentExposure + (body as any).amount > limit) {
           return {
-            error: `LIMIT_REACHED: Límite de riesgo excedido para el ${body.numbers}. Disp: ${formatCurrency(limit - currentExposure)}`,
+            error: `LIMIT_REACHED: Límite de riesgo excedido para el ${(body as any).numbers}.Disp: ${formatCurrency(limit - currentExposure)} `,
           };
         }
 
         const oldBalance = user.balance_bigint;
-        const newBalance = oldBalance - body.amount;
+        const newBalance = oldBalance - (body as any).amount;
         user.balance_bigint = newBalance;
         MockDB.saveUser(user);
 
         const ticketCode = generateTicketCode('BT');
         const newBet = {
-          id: `bet-${Date.now()}-${Math.random()}`,
+          id: `bet - ${Date.now()} -${Math.random()} `,
           ticket_code: ticketCode,
           user_id: user.id,
-          draw_id: body.draw_id,
-          amount_bigint: body.amount,
-          numbers: body.numbers,
-          mode: body.mode,
+          draw_id: (body as any).draw_id,
+          amount_bigint: (body as any).amount,
+          numbers: (body as any).numbers,
+          mode: (body as any).mode,
           status: 'PENDING',
           created_at: new Date().toISOString(),
         };
         MockDB.addBet(newBet);
 
         MockDB.addTransaction({
-          id: `tx-bet-${Date.now()}`,
+          id: `tx - bet - ${Date.now()} `,
           ticket_code: ticketCode,
           user_id: user.id,
-          amount_bigint: -body.amount,
+          amount_bigint: -(body as any).amount,
           balance_before: oldBalance,
           balance_after: newBalance,
           type: 'DEBIT',
           reference_id: ticketCode,
-          meta: { description: `Apuesta: ${body.numbers}`, draw: body.draw_id, mode: body.mode },
+          meta: { description: `Apuesta: ${(body as any).numbers} `, draw: (body as any).draw_id, mode: (body as any).mode },
           created_at: new Date().toISOString(),
         });
 
@@ -352,25 +377,25 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         });
 
         let filtered = enrichedBets;
-        if (body.userId && body.role !== 'SuperAdmin') {
-          if (body.role === 'Vendedor') {
+        if ((body as any).userId && (body as any).role !== 'SuperAdmin') {
+          if ((body as any).role === 'Vendedor') {
             const myClients = users
-              .filter((u: AppUser) => u.issuer_id === body.userId)
+              .filter((u: AppUser) => u.issuer_id === (body as any).userId)
               .map((u: AppUser) => u.id);
             filtered = enrichedBets.filter(
-              (b: Bet) => b.user_id === body.userId || myClients.includes(b.user_id)
+              (b: Bet) => b.user_id === (body as any).userId || myClients.includes(b.user_id)
             );
           } else {
-            filtered = enrichedBets.filter((b: Bet) => b.user_id === body.userId);
+            filtered = enrichedBets.filter((b: Bet) => b.user_id === (body as any).userId);
           }
         }
 
-        if (body.statusFilter && body.statusFilter !== 'ALL') {
-          filtered = filtered.filter((b: Bet) => b.status === body.statusFilter);
+        if ((body as any).statusFilter && (body as any).statusFilter !== 'ALL') {
+          filtered = filtered.filter((b: Bet) => b.status === (body as any).statusFilter);
         }
 
-        if (body.timeFilter && body.timeFilter !== 'ALL') {
-          filtered = filtered.filter((b: Bet) => b.draw_id && b.draw_id.includes(body.timeFilter));
+        if ((body as any).timeFilter && (body as any).timeFilter !== 'ALL') {
+          filtered = filtered.filter((b: Bet) => b.draw_id && b.draw_id.includes((body as any).timeFilter));
         }
 
         return { data: { bets: filtered } };
@@ -380,12 +405,12 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
       if (functionName === 'publishDrawResult') {
         // 1. Save Result using camelCase standard
         MockDB.saveResult({
-          id: `res-${body.drawTime}-${body.date}`,
-          date: body.date,
-          drawTime: body.drawTime,
-          winningNumber: body.winningNumber,
-          isReventado: body.isReventado,
-          reventadoNumber: body.reventadoNumber,
+          id: `res - ${(body as any).drawTime} -${(body as any).date} `,
+          date: (body as any).date,
+          drawTime: (body as any).drawTime,
+          winningNumber: (body as any).winningNumber,
+          isReventado: (body as any).isReventado,
+          reventadoNumber: (body as any).reventadoNumber,
           status: 'CLOSED',
           created_at: new Date().toISOString(),
         });
@@ -399,16 +424,16 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         const updatedBets = [...bets];
 
         updatedBets.forEach((bet: Bet) => {
-          if (bet.status === 'PENDING' && bet.draw_id === body.drawTime) {
+          if (bet.status === 'PENDING' && bet.draw_id === (body as any).drawTime) {
             let won = false;
             let payoutMultiplier = 0;
 
-            if (bet.numbers === body.winningNumber) {
+            if (bet.numbers === (body as any).winningNumber) {
               won = true;
               payoutMultiplier = settings.multiplier_tiempos || 90;
 
               if (bet.mode === 'Reventados (200x)') {
-                if (body.isReventado) {
+                if ((body as any).isReventado) {
                   payoutMultiplier = settings.multiplier_reventados || 200;
                 } else {
                   payoutMultiplier = settings.multiplier_tiempos || 90;
@@ -420,22 +445,22 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
               bet.status = 'WON';
               const prize = bet.amount_bigint * payoutMultiplier;
 
-              const user = users.find((u: any) => u.id === bet.user_id);
+              const user = users.find((u: AppUser) => u.id === bet.user_id);
               if (user) {
                 user.balance_bigint += prize;
                 MockDB.saveUser(user);
 
                 MockDB.addTransaction({
-                  id: `tx-win-${bet.id}`,
+                  id: `tx - win - ${bet.id} `,
                   ticket_code: bet.ticket_code,
                   user_id: user.id,
                   amount_bigint: prize,
                   balance_before: user.balance_bigint - prize,
                   balance_after: user.balance_bigint,
                   type: 'CREDIT',
-                  reference_id: `WIN-${bet.ticket_code}`,
+                  reference_id: `WIN - ${bet.ticket_code} `,
                   meta: {
-                    description: `Premio: ${bet.numbers}`,
+                    description: `Premio: ${bet.numbers} `,
                     multiplier: payoutMultiplier,
                     mode: bet.mode,
                   },
@@ -452,11 +477,11 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         MockDB.saveDB('tiempospro_db_bets', updatedBets);
 
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id: (body as any).actor_id,
           action: 'PUBLISH_RESULT',
           type: AuditEventType.GAME_BET,
           severity: AuditSeverity.SUCCESS,
-          metadata: { draw: body.drawTime, number: body.winningNumber, winners: processedCount },
+          metadata: { draw: (body as any).drawTime, number: (body as any).winningNumber, winners: processedCount },
         });
 
         return { data: { success: true, processed: processedCount } };
@@ -477,9 +502,9 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         const statsMap = new Map<string, number>();
 
         bets.forEach((b: Bet) => {
-          if (b.status === 'PENDING' && b.draw_id === body.draw) {
+          if (b.status === 'PENDING' && b.draw_id === (body as any).draw) {
             const current = statsMap.get(b.numbers) || 0;
-            statsMap.set(b.numbers, current + b.amount_bigint);
+            statsMap.set(b.numbers, current + Number(b.amount_bigint));
           }
         });
 
@@ -493,11 +518,24 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
       }
 
       if (functionName === 'updateRiskLimit') {
-        MockDB.saveLimit({
-          draw_type: body.draw,
-          number: body.number,
-          max_amount: body.max_amount,
-        });
+        // Assuming body contains { draw: string, number: string, max_amount: number }
+        const existingLimit = MockDB.getLimits().find(
+          (l: RiskLimit) => l.draw_type === (body as any).draw && l.number === (body as any).number
+        );
+
+        if (existingLimit) {
+          MockDB.saveLimit({
+            ...existingLimit,
+            max_amount: (body as any).max_amount,
+          });
+        } else {
+          // If not found, create a new one.
+          MockDB.saveLimit({
+            draw_type: (body as any).draw,
+            number: (body as any).number,
+            max_amount: (body as any).max_amount,
+          });
+        }
         return { data: { success: true } };
       }
 
@@ -505,35 +543,42 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
         return { data: MockDB.getSettingsList() };
       }
       if (functionName === 'updateMaintenanceSetting') {
-        MockDB.updateSetting(body.key, body.value);
+        const { key, value } = body as { key: string; value: unknown };
+        MockDB.updateSetting(key, value);
         return { data: { success: true } };
       }
       if (functionName === 'getCatalogs') {
         return { data: [] as MasterCatalogItem[] };
       }
       if (functionName === 'analyzePurge') {
-        return { data: MockDB.analyzePurge(body.target, body.days) };
+        const { target, days } = body as { target: PurgeTarget; days: number };
+        return { data: MockDB.analyzePurge(target, days) };
       }
       if (functionName === 'executePurge') {
-        if (body.target === 'DEEP_CLEAN') {
+        const { target, days, actor_id } = body as {
+          target: PurgeTarget;
+          days: number;
+          actor_id: string;
+        };
+        if (target === 'DEEP_CLEAN') {
           let count = 0;
-          count += MockDB.executePurge('BETS_HISTORY', body.days);
-          count += MockDB.executePurge('AUDIT_LOGS', body.days);
-          count += MockDB.executePurge('RESULTS_HISTORY', body.days);
-          count += MockDB.executePurge('LEDGER_OLD', body.days);
+          count += MockDB.executePurge('BETS_HISTORY', days);
+          count += MockDB.executePurge('AUDIT_LOGS', days);
+          count += MockDB.executePurge('RESULTS_HISTORY', days);
+          count += MockDB.executePurge('LEDGER_OLD', days);
 
           MockDB.addAudit({
-            actor_id: body.actor_id,
+            actor_id,
             action: 'DEEP_SYSTEM_PURGE',
             type: AuditEventType.ADMIN_PURGE,
             severity: AuditSeverity.FORENSIC,
             target_resource: 'ALL_HISTORICAL_DATA',
-            metadata: { records_deleted: count, cutoff_days: body.days },
+            metadata: { records_deleted: count, cutoff_days: days },
           });
           return { data: { success: true, count } };
         }
 
-        const count = MockDB.executePurge(body.target, body.days);
+        const count = MockDB.executePurge(target, days);
         return { data: { success: true, count } };
       }
 
@@ -550,7 +595,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
           const date = new Date(b.created_at);
           const weekNum = getWeek(date);
           const year = date.getFullYear();
-          const key = `${year}-${weekNum}`;
+          const key = `${year} -${weekNum} `;
 
           if (!weeksMap.has(key)) {
             const startOfWeek = new Date(date);
@@ -601,10 +646,16 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
       }
 
       if (functionName === 'purgeWeeklyData') {
-        if (body.confirmation === 'PURGA TOTAL SISTEMA') {
+        const { confirmation, weekNumber, actor_id, year } = body as {
+          confirmation: string;
+          weekNumber: number;
+          actor_id: string;
+          year: number;
+        };
+        if (confirmation === 'PURGA TOTAL SISTEMA') {
           let count = 0;
           const currentWeek = 52;
-          const diffWeeks = currentWeek - body.weekNumber;
+          const diffWeeks = currentWeek - weekNumber;
           const days = diffWeeks * 7;
 
           count += MockDB.executePurge('BETS_HISTORY', days);
@@ -613,26 +664,26 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
           count += MockDB.executePurge('LEDGER_OLD', days);
 
           MockDB.addAudit({
-            actor_id: body.actor_id,
+            actor_id,
             action: 'DEEP_SYSTEM_PURGE',
             type: AuditEventType.ADMIN_PURGE,
             severity: AuditSeverity.FORENSIC,
-            target_resource: `WEEK-${body.weekNumber}-ALL`,
+            target_resource: `WEEK - ${weekNumber} -ALL`,
             metadata: { records_deleted: count },
           });
           return { data: { success: true, message: 'Sistema purgado.' } };
         }
 
-        if (body.confirmation !== 'CONFIRMAR LIMPIEZA' && body.confirmation !== 'ARCHIVAR LOGS')
+        if (confirmation !== 'CONFIRMAR LIMPIEZA' && confirmation !== 'ARCHIVAR LOGS')
           return { error: 'Confirmación inválida' };
 
         MockDB.addAudit({
-          actor_id: body.actor_id,
+          actor_id,
           action: 'PURGE_WEEKLY_DATA',
           type: AuditEventType.ADMIN_PURGE,
           severity: AuditSeverity.WARNING,
-          target_resource: `WEEK-${body.weekNumber}`,
-          metadata: { year: body.year },
+          target_resource: `WEEK - ${weekNumber} `,
+          metadata: { year },
         });
         return { data: { success: true, message: 'Limpieza realizada' } };
       }
@@ -645,9 +696,9 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
     // we use the Supabase Client directly to interact with the DB.
     // This allows the app to work out-of-the-box without CLI deployment.
     return await executeDirectDB<T>(functionName, body, session);
-  } catch (error: any) {
+  } catch (error) {
     console.error('API Error:', error);
-    return { error: error.message || 'Error de red' };
+    return { error: error instanceof Error ? error.message : 'Error de red' };
   }
 }
 
@@ -655,7 +706,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promi
 async function executeDirectDB<T>(
   fn: string,
   body: unknown,
-  session: any
+  session: Session | null
 ): Promise<ApiResponse<T>> {
   // AUDIT LOGGING HELPER
   const logAudit = async (
@@ -668,7 +719,7 @@ async function executeDirectDB<T>(
     if (!session?.user?.id) return;
     try {
       await supabase.from('audit_trail').insert({
-        event_id: `EVT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        event_id: `EVT - ${Date.now()} -${Math.floor(Math.random() * 1000)} `,
         timestamp: new Date().toISOString(),
         actor_id: session.user.id,
         actor_name: session.user.email,
@@ -727,7 +778,14 @@ async function executeDirectDB<T>(
 
       if (pErr || !profile) return { error: 'Error obteniendo perfil de usuario' };
 
-      if (profile.balance_bigint < body.amount) return { error: 'SALDO INSUFICIENTE' };
+      const { amount, numbers, draw_id, mode } = body as {
+        amount: number;
+        numbers: string;
+        draw_id: string;
+        mode: string;
+      };
+
+      if (profile.balance_bigint < amount) return { error: 'SALDO INSUFICIENTE' };
 
       // Generate Ticket
       const ticketCode = generateTicketCode('TK');
@@ -741,9 +799,9 @@ async function executeDirectDB<T>(
         .insert({
           ticket_code: ticketCode,
           user_id: profile.id,
-          amount_bigint: body.amount,
-          numbers: body.numbers,
-          mode: `${body.draw_id}:::${body.mode}`,
+          amount_bigint: amount,
+          numbers: numbers,
+          mode: `${draw_id}:::${mode} `,
           draw_id: null,
           status: 'PENDING',
         })
@@ -756,18 +814,18 @@ async function executeDirectDB<T>(
       }
 
       // Update Balance
-      const newBalance = profile.balance_bigint - body.amount;
+      const newBalance = profile.balance_bigint - amount;
       await supabase.from('app_users').update({ balance_bigint: newBalance }).eq('id', profile.id);
 
       // Ledger
       await supabase.from('ledger_transactions').insert({
         user_id: profile.id,
-        amount_bigint: -body.amount,
+        amount_bigint: -amount,
         type: 'DEBIT',
         ticket_code: ticketCode,
         balance_before: profile.balance_bigint,
         balance_after: newBalance,
-        meta: { description: `Apuesta ${body.numbers}`, mode: body.mode },
+        meta: { description: `Apuesta ${numbers} `, mode: mode },
         reference_id: ticketCode,
       });
 
@@ -775,7 +833,7 @@ async function executeDirectDB<T>(
         'PLACE_BET',
         'GAME_BET',
         'SUCCESS',
-        { ticket: ticketCode, amount: body.amount, numbers: body.numbers },
+        { ticket: ticketCode, amount, numbers },
         ticketCode
       );
 
@@ -794,16 +852,21 @@ async function executeDirectDB<T>(
 
     if (fn === 'updateGlobalMultiplier') {
       try {
+        const { baseValue, reventadosValue, actor_id } = body as {
+          baseValue: number;
+          reventadosValue: number;
+          actor_id: string;
+        };
         // Fix: Removed non-existent 'type' column. Value is stored as JSONB.
         const { error: e1 } = await supabase.from('system_settings').upsert({
           key: 'MULTIPLIER_TIEMPOS',
-          value: body.baseValue, // Pass raw value, Supabase/JSONB handles it
+          value: baseValue, // Pass raw value, Supabase/JSONB handles it
           updated_at: new Date().toISOString(),
         });
 
         const { error: e2 } = await supabase.from('system_settings').upsert({
           key: 'MULTIPLIER_REVENTADOS',
-          value: body.reventadosValue,
+          value: reventadosValue,
           updated_at: new Date().toISOString(),
         });
 
@@ -814,8 +877,8 @@ async function executeDirectDB<T>(
           'SYSTEM_CONFIG',
           'WARNING',
           {
-            new_mult_tiempos: body.baseValue,
-            new_mult_reventados: body.reventadosValue,
+            new_mult_tiempos: baseValue,
+            new_mult_reventados: reventadosValue,
           },
           'Global Settings'
         );
@@ -829,19 +892,20 @@ async function executeDirectDB<T>(
 
     // 4. USERS
     if (fn === 'rechargeUser') {
+      const { target_user_id, amount } = body as { target_user_id: string; amount: number };
       const { data: user } = await supabase
         .from('app_users')
         .select('*')
-        .eq('id', body.target_user_id)
+        .eq('id', target_user_id)
         .single();
       if (!user) return { error: 'Usuario no encontrado' };
-      const newBal = user.balance_bigint + body.amount;
+      const newBal = user.balance_bigint + amount;
       await supabase.from('app_users').update({ balance_bigint: newBal }).eq('id', user.id);
 
-      const txId = `DEP-${Date.now()}`;
+      const txId = `DEP - ${Date.now()} `;
       await supabase.from('ledger_transactions').insert({
         user_id: user.id,
-        amount_bigint: body.amount,
+        amount_bigint: amount,
         type: 'CREDIT',
         balance_before: user.balance_bigint,
         balance_after: newBal,
@@ -852,28 +916,29 @@ async function executeDirectDB<T>(
         'USER_RECHARGE',
         'TX_DEPOSIT',
         'SUCCESS',
-        { amount: body.amount, newBalance: newBal },
+        { amount, newBalance: newBal },
         user.id
       );
       return { data: { new_balance: newBal, tx_id: txId } };
     }
 
     if (fn === 'withdrawUser') {
+      const { target_user_id, amount } = body as { target_user_id: string; amount: number };
       const { data: user } = await supabase
         .from('app_users')
         .select('*')
-        .eq('id', body.target_user_id)
+        .eq('id', target_user_id)
         .single();
       if (!user) return { error: 'Usuario no encontrado' };
-      if (user.balance_bigint < body.amount) return { error: 'Fondos insuficientes' };
+      if (user.balance_bigint < amount) return { error: 'Fondos insuficientes' };
 
-      const newBal = user.balance_bigint - body.amount;
+      const newBal = user.balance_bigint - amount;
       await supabase.from('app_users').update({ balance_bigint: newBal }).eq('id', user.id);
 
-      const txId = `WD-${Date.now()}`;
+      const txId = `WD - ${Date.now()} `;
       await supabase.from('ledger_transactions').insert({
         user_id: user.id,
-        amount_bigint: -body.amount,
+        amount_bigint: -amount,
         type: 'DEBIT',
         balance_before: user.balance_bigint,
         balance_after: newBal,
@@ -884,7 +949,7 @@ async function executeDirectDB<T>(
         'USER_WITHDRAW',
         'TX_WITHDRAWAL',
         'SUCCESS',
-        { amount: body.amount, newBalance: newBal },
+        { amount, newBalance: newBal },
         user.id
       );
       return { data: { new_balance: newBal, tx_id: txId } };
@@ -904,10 +969,19 @@ async function executeDirectDB<T>(
       if (!issuer) return { error: 'No tienes permiso para crear usuarios' };
 
       // 1. Check Uniqueness
+      const { email, cedula, name, phone, role, balance_bigint, pin } = body as {
+        email: string;
+        cedula: string;
+        name: string;
+        phone: string;
+        role: string;
+        balance_bigint: number;
+        pin: string;
+      };
       const { data: existing } = await supabase
         .from('app_users')
         .select('id')
-        .or(`email.eq.${body.email},cedula.eq.${body.cedula}`)
+        .or(`email.eq.${email}, cedula.eq.${cedula} `)
         .maybeSingle();
 
       if (existing) return { error: 'Identidad duplicada (Cédula o Email ya existen)' };
@@ -916,16 +990,16 @@ async function executeDirectDB<T>(
       const { data: newUser, error: cErr } = await supabase
         .from('app_users')
         .insert({
-          name: body.name,
-          cedula: body.cedula,
-          email: body.email || `managed-${Date.now()}@tiempos.local`,
-          phone: body.phone,
-          role: body.role,
-          balance_bigint: body.balance_bigint || 0,
+          name,
+          cedula,
+          email: email || `managed - ${Date.now()} @tiempos.local`,
+          phone,
+          role,
+          balance_bigint: balance_bigint || 0,
           status: 'Active',
           issuer_id: issuer.id,
           auth_uid: null, // Managed User (No Login)
-          pin_hash: body.pin, // Storing raw PIN for managed/local auth context
+          pin_hash: pin, // Storing raw PIN for managed/local auth context
         })
         .select()
         .single();
@@ -936,14 +1010,14 @@ async function executeDirectDB<T>(
       }
 
       // 3. Initial Ledger
-      if (body.balance_bigint > 0) {
+      if (balance_bigint > 0) {
         await supabase.from('ledger_transactions').insert({
           user_id: newUser.id,
-          amount_bigint: body.balance_bigint,
+          amount_bigint: balance_bigint,
           balance_before: 0,
-          balance_after: body.balance_bigint,
+          balance_after: balance_bigint,
           type: 'CREDIT',
-          ticket_code: `INIT-${Date.now()}`,
+          ticket_code: `INIT - ${Date.now()} `,
           meta: { description: 'Aprovisionamiento Inicial', issuer: issuer.id },
         });
       }
@@ -962,7 +1036,7 @@ async function executeDirectDB<T>(
 
     // 5. MAINTENANCE & PURGE
     if (fn === 'analyzePurge') {
-      const { target, days } = body;
+      const { target, days } = body as { target: PurgeTarget; days: number };
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - (days || 30));
       const cutoffStr = cutoff.toISOString();
@@ -989,12 +1063,12 @@ async function executeDirectDB<T>(
           estimatedSizeKB: Math.round(count * 0.5),
           riskLevel: count > 1000 ? 'HIGH' : 'LOW',
           description: `Se encontraron ${count} registros antiguos.`,
-        },
+        } as PurgeAnalysis,
       };
     }
 
     if (fn === 'executePurge') {
-      const { target, days } = body;
+      const { target, days } = body as { target: PurgeTarget; days: number };
 
       // Calculate Date Cutoff
       const cutoff = new Date();
@@ -1031,7 +1105,7 @@ async function executeDirectDB<T>(
     }
 
     if (fn === 'updateUserStatus') {
-      const { target_user_id, status } = body;
+      const { target_user_id, status } = body as { target_user_id: string; status: string };
       if (!target_user_id) return { error: 'ID de usuario requerido' };
       const { error } = await supabase
         .from('app_users')
@@ -1049,7 +1123,7 @@ async function executeDirectDB<T>(
     }
 
     if (fn === 'deleteUser') {
-      const { target_user_id } = body;
+      const { target_user_id } = body as { target_user_id: string };
       if (!target_user_id) return { error: 'ID de usuario requerido' };
 
       // Try Hard Delete (Clean removal)
@@ -1060,7 +1134,7 @@ async function executeDirectDB<T>(
         console.warn('Hard delete failed (has history), switching to Soft Delete:', error.code);
         const { error: softErr } = await supabase
           .from('app_users')
-          .update({ status: 'Deleted', name: `[Eliminado] ${target_user_id.slice(0, 4)}` })
+          .update({ status: 'Deleted', name: `[Eliminado] ${target_user_id.slice(0, 4)} ` })
           .eq('id', target_user_id);
 
         if (softErr) return { error: 'No se pudo eliminar el usuario (Error al Archivar)' };
@@ -1078,21 +1152,28 @@ async function executeDirectDB<T>(
     if (fn === 'getGlobalBets') {
       // MANUAL JOIN & FILTER STRATEGY (Robust Fallback)
       // We perform manual fetch of users to avoid potential PostgREST FK detection issues
+      const { userId, role, statusFilter, timeFilter } = body as {
+        userId?: string;
+        role?: string;
+        statusFilter?: string;
+        timeFilter?: string;
+      };
+
       let query = supabase.from('bets').select('*');
 
-      if (body.userId && body.role === 'Cliente') {
+      if (userId && role === 'Cliente') {
         // Strict isolation for Cliente (only see own bets).
         // For Vendedor/SuperAdmin, we rely on RLS to show their scope (including downlines).
-        query = query.eq('user_id', body.userId);
+        query = query.eq('user_id', userId);
       }
 
-      if (body.statusFilter && body.statusFilter !== 'ALL') {
-        query = query.eq('status', body.statusFilter);
+      if (statusFilter && statusFilter !== 'ALL') {
+        query = query.eq('status', statusFilter);
       }
 
-      if (body.timeFilter && body.timeFilter !== 'ALL') {
+      if (timeFilter && timeFilter !== 'ALL') {
         // Hack: Search for Time string inside the composite 'mode' field
-        query = query.ilike('mode', `%${body.timeFilter}%`);
+        query = query.ilike('mode', `% ${timeFilter}% `);
       }
 
       // Fetch Bets
@@ -1109,7 +1190,7 @@ async function executeDirectDB<T>(
 
       // Fetch Users Manually
       const userIds = [...new Set(betsData.map((b: Bet) => b.user_id).filter(Boolean))];
-      let usersData: any[] = [];
+      let usersData: AppUser[] = [];
 
       if (userIds.length > 0) {
         try {
@@ -1117,7 +1198,7 @@ async function executeDirectDB<T>(
             .from('app_users')
             .select('id, name, role')
             .in('id', userIds);
-          usersData = data || [];
+          usersData = (data as AppUser[]) || [];
         } catch (uErr) {
           console.error('User fetch error:', uErr);
         }
@@ -1158,8 +1239,8 @@ async function executeDirectDB<T>(
       // Note: Adjust timezone logic if the app is strictly localized (e.g. UTC-6).
       // For now, we assume bets for a day are created between 00:00 and 23:59 of that date (Local/UTC agnostic via string comparison or generous UTC range).
 
-      const startOfDay = `${date}T00:00:00.000Z`; // Beginning of draw date
-      const endOfDay = `${date}T23:59:59.999Z`; // End of draw date
+      const startOfDay = `${date} T00:00:00.000Z`; // Beginning of draw date
+      const endOfDay = `${date} T23: 59: 59.999Z`; // End of draw date
 
       // For even stricter safety in CR style (UTC-6), we might need to shift.
       // But checking 'created_at' >= date is a solid baseline to prevent "Yesterday's bets".
@@ -1168,7 +1249,7 @@ async function executeDirectDB<T>(
         .from('bets')
         .select('*')
         .eq('status', 'PENDING')
-        .ilike('mode', `%${drawTime}%`) // Correct Time (e.g. Mediodia)
+        .ilike('mode', `% ${drawTime}% `) // Correct Time (e.g. Mediodia)
         .gte('created_at', startOfDay) // Correct Date (Start)
         .lte('created_at', endOfDay); // Correct Date (End)
 
@@ -1199,7 +1280,7 @@ async function executeDirectDB<T>(
                     .from('bets')
                     .update({ status: 'WON' })
                     .eq('id', bet.id);
-                  if (bErr) throw new Error(`Bet status update failed: ${bErr.message}`);
+                  if (bErr) throw new Error(`Bet status update failed: ${bErr.message} `);
 
                   // 2. Update Balance & Ledger (User)
                   const { data: user, error: uFetchErr } = await supabase
@@ -1208,7 +1289,7 @@ async function executeDirectDB<T>(
                     .eq('id', bet.user_id)
                     .single();
                   if (uFetchErr || !user)
-                    throw new Error(`User fetch failed: ${uFetchErr?.message}`);
+                    throw new Error(`User fetch failed: ${uFetchErr?.message} `);
 
                   const newBalance = Number(user.balance_bigint) + prize;
 
@@ -1216,7 +1297,7 @@ async function executeDirectDB<T>(
                     .from('app_users')
                     .update({ balance_bigint: newBalance })
                     .eq('id', bet.user_id);
-                  if (uParamsErr) throw new Error(`Balance update failed: ${uParamsErr.message}`);
+                  if (uParamsErr) throw new Error(`Balance update failed: ${uParamsErr.message} `);
 
                   await supabase.from('ledger_transactions').insert({
                     user_id: bet.user_id,
@@ -1230,12 +1311,12 @@ async function executeDirectDB<T>(
                       number: winningNumber,
                       description: 'Premio Automático',
                     },
-                    reference_id: `WIN-${bet.id}-${Date.now()}`,
+                    reference_id: `WIN - ${bet.id} -${Date.now()} `,
                   });
 
                   return { success: true, id: bet.id };
                 } catch (e: any) {
-                  console.error(`Failed to payout bet ${bet.id}:`, e);
+                  console.error(`Failed to payout bet ${bet.id}: `, e);
                   await logAudit(
                     'PAYOUT_FAILURE',
                     'GAME_ERROR',
@@ -1265,7 +1346,7 @@ async function executeDirectDB<T>(
         'GAME_EVENT',
         'CRITICAL',
         { draw: drawTime, winner: winningNumber, total_processed: processedCount },
-        `${date}:${drawTime}`
+        `${date}:${drawTime} `
       );
 
       return { data: { success: true, processed: processedCount } };
@@ -1278,7 +1359,7 @@ async function executeDirectDB<T>(
       // REDIS CACHE CHECK (Disabled: Missing Keys)
       /*
                         try {
-                            const cacheRes = await fetch(`/api/cache?key=live_results_${today.toISOString().split('T')[0]}`);
+                            const cacheRes = await fetch(`/ api / cache ? key = live_results_${ today.toISOString().split('T')[0] } `);
                             if (cacheRes.ok) {
                                 const cachedData = await cacheRes.json();
                                 if (cachedData) return { data: cachedData };
@@ -1297,7 +1378,7 @@ async function executeDirectDB<T>(
       // REDIS CACHE SET (Disabled: Missing Keys)
       /*
                         try {
-                            await fetch(`/api/cache?key=live_results_${today.toISOString().split('T')[0]}&value=${JSON.stringify(resultPayload)}&ttl=60`, { method: 'POST' });
+                            await fetch(`/ api / cache ? key = live_results_${ today.toISOString().split('T')[0] }& value=${ JSON.stringify(resultPayload) }& ttl=60`, { method: 'POST' });
                         } catch (ignore) { }
                         */
 
@@ -1309,7 +1390,7 @@ async function executeDirectDB<T>(
       return { data: { stats: [] } };
     }
 
-    console.warn(`[DirectDB] Function ${fn} not implemented. Check console.`);
+    console.warn(`[DirectDB] Function ${fn} not implemented.Check console.`);
     return { error: 'Función no implementada en modo directo' };
   } catch (e: any) {
     return { error: e.message };

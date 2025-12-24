@@ -67,6 +67,7 @@ export function useServerClock() {
       window.removeEventListener('online', syncClock);
       window.removeEventListener('offline', () => setIsOffline(true));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2. Local Tick (High Precision)

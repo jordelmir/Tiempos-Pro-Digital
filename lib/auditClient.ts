@@ -21,7 +21,7 @@ interface AuditPayload {
   category: AuditCategory;
   severity: AuditSeverity;
   target?: string; // Resource ID
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export const auditLogger = {
@@ -71,7 +71,7 @@ export const auditLogger = {
     }
   },
 
-  logCritical: async (action: string, details: any) => {
+  logCritical: async (action: string, details: Record<string, unknown>) => {
     await auditLogger.log({
       action,
       category: AuditCategory.SYSTEM,

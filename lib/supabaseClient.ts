@@ -1,6 +1,17 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants';
-import { AuditSeverity, AuditEventType, PurgeTarget, PurgeAnalysis } from '../types';
+import {
+  AuditSeverity,
+  AuditEventType,
+  PurgeTarget,
+  PurgeAnalysis,
+  AppUser,
+  Bet,
+  LedgerTransaction,
+  DrawResult,
+  SystemSetting,
+  RiskLimit,
+} from '../types';
 
 // Detect if we are using default/placeholder credentials
 const isDemo =
@@ -20,7 +31,7 @@ const DB_STORAGE_KEYS = {
 };
 
 // Safe Persistence
-const load = (key: string, def: any) => {
+const load = (key: string, def: unknown) => {
   try {
     const val = localStorage.getItem(key);
     return val ? JSON.parse(val) : def;
@@ -28,11 +39,11 @@ const load = (key: string, def: any) => {
     return def;
   }
 };
-const save = (key: string, val: any) => {
+const save = (key: string, val: unknown) => {
   try {
     localStorage.setItem(key, JSON.stringify(val));
   } catch (e) {
-    console.error('Quota Exceeded');
+    console.error('Quota Exceeded', e);
   }
 };
 
@@ -54,7 +65,7 @@ const MOCK_ADMIN_PROFILE = {
 };
 
 const generateLedgerHistory = () => {
-  const txs: any[] = [];
+  const txs: LedgerTransaction[] = [];
   const now = new Date();
   let currentBalance = 500000000;
 
@@ -97,31 +108,31 @@ const DB_LIMITS = load(DB_STORAGE_KEYS.LIMITS, []);
 
 export const MockDB = {
   getUsers: () => DB_USERS,
-  saveUser: (user: any) => {
-    const idx = DB_USERS.findIndex((u: any) => u.id === user.id);
+  saveUser: (user: AppUser) => {
+    const idx = DB_USERS.findIndex((u: AppUser) => u.id === user.id);
     if (idx >= 0) DB_USERS[idx] = user;
     else DB_USERS.unshift(user);
     save(DB_STORAGE_KEYS.USERS, DB_USERS);
   },
   deleteUser: (userId: string) => {
-    DB_USERS = DB_USERS.filter((u: any) => u.id !== userId);
+    DB_USERS = DB_USERS.filter((u: AppUser) => u.id !== userId);
     save(DB_STORAGE_KEYS.USERS, DB_USERS);
   },
   getBets: () => DB_BETS,
-  addBet: (bet: any) => {
+  addBet: (bet: Bet) => {
     DB_BETS.unshift(bet);
     save(DB_STORAGE_KEYS.BETS, DB_BETS);
   },
   getLedger: () => DB_LEDGER,
-  addTransaction: (tx: any) => {
+  addTransaction: (tx: LedgerTransaction) => {
     DB_LEDGER.unshift(tx);
     save(DB_STORAGE_KEYS.LEDGER, DB_LEDGER);
   },
   getResults: () => DB_RESULTS,
-  saveResult: (res: any) => {
+  saveResult: (res: DrawResult) => {
     // CORRECCIÓN CRÍTICA: Búsqueda unívoca por drawTime para evitar colisiones de undefined
     const idx = DB_RESULTS.findIndex(
-      (r: any) => r.drawTime === res.drawTime && r.date === res.date
+      (r: DrawResult) => r.drawTime === res.drawTime && r.date === res.date
     );
     if (idx >= 0) {
       DB_RESULTS[idx] = { ...DB_RESULTS[idx], ...res };
@@ -131,7 +142,7 @@ export const MockDB = {
     save(DB_STORAGE_KEYS.RESULTS, DB_RESULTS);
   },
   getAudit: () => DB_AUDIT,
-  addAudit: (log: any) => {
+  addAudit: (log: unknown) => {
     const newLog = {
       id: Date.now() + Math.random(),
       event_id: `EVT-${Date.now()}`,
@@ -143,16 +154,17 @@ export const MockDB = {
     save(DB_STORAGE_KEYS.AUDIT, DB_AUDIT);
   },
   getSettings: () => DB_SETTINGS,
-  saveSettings: (s: any) => {
+  saveSettings: (s: Partial<SystemSetting>) => {
     DB_SETTINGS = { ...DB_SETTINGS, ...s };
     save(DB_STORAGE_KEYS.SETTINGS, DB_SETTINGS);
   },
   getSettingsList: () => [],
-  updateSetting: (k: string, v: any) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  updateSetting: (_k: string, _v: unknown) => {},
   getLimits: () => DB_LIMITS,
-  saveLimit: (limit: any) => {
+  saveLimit: (limit: RiskLimit) => {
     const idx = DB_LIMITS.findIndex(
-      (l: any) => l.draw_type === limit.draw_type && l.number === limit.number
+      (l: RiskLimit) => l.draw_type === limit.draw_type && l.number === limit.number
     );
     if (idx >= 0) DB_LIMITS[idx] = limit;
     else DB_LIMITS.push(limit);
@@ -161,9 +173,9 @@ export const MockDB = {
 
   analyzePurge: (target: PurgeTarget, days: number): PurgeAnalysis => {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    let list: any[] = [];
+    let list: unknown[] = [];
     let desc = '';
-    let risk: any = 'LOW';
+    let risk: PurgeAnalysis['riskLevel'] = 'LOW';
 
     if (target === 'BETS_HISTORY') {
       list = DB_BETS.filter(
@@ -226,7 +238,7 @@ export const MockDB = {
     }
     return 0;
   },
-  saveDB: (key: string, val: any) => save(key, val),
+  saveDB: (key: string, val: unknown) => save(key, val),
 };
 
 if (isDemo) {
@@ -249,9 +261,9 @@ if (isDemo) {
         }
         return { data: { session: null }, error: null };
       },
-      signInWithPassword: async ({ email }: any) => {
+      signInWithPassword: async ({ email }: { email: string }) => {
         await new Promise((r) => setTimeout(r, 600));
-        const target = DB_USERS.find((u: any) => u.email === email) || MOCK_ADMIN_PROFILE;
+        const target = DB_USERS.find((u: AppUser) => u.email === email) || MOCK_ADMIN_PROFILE;
         const authUser = {
           id: target.auth_uid,
           email: target.email,
@@ -271,16 +283,23 @@ if (isDemo) {
     },
     from: (table: string) => {
       const chain = {
-        select: (c: string) => chain,
-        eq: (f: string, v: string) => chain,
-        order: (f: string, { ascending }: any) => chain,
-        limit: (n: number) => chain,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        select: (_c: string) => chain,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        eq: (_f: string, _v: string) => chain,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        order: (_f: string, { ascending }: { ascending: boolean }) => {
+          console.log(ascending); // dummy usage
+          return chain;
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        limit: (_n: number) => chain,
         single: async () => {
           if (table === 'app_users') return { data: MOCK_ADMIN_PROFILE, error: null };
           return { data: null, error: { message: 'Not Mocked' } };
         },
-        then: (callback: any) => {
-          let data: any[] = [];
+        then: (callback: (args: { data: unknown[]; error: null }) => void) => {
+          let data: unknown[] = [];
           if (table === 'app_users') data = DB_USERS;
           else if (table === 'ledger_transactions') data = DB_LEDGER;
           else if (table === 'audit_trail') data = DB_AUDIT;
@@ -291,7 +310,7 @@ if (isDemo) {
       };
       return chain;
     },
-  } as any;
+  } as unknown as SupabaseClient;
 } else {
   client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }

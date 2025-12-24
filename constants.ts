@@ -21,12 +21,12 @@ export const SUPABASE_ANON_KEY =
   'your-anon-key';
 
 // Formatters
-export const formatCurrency = (cents: number) => {
+export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('es-CR', {
     style: 'currency',
     currency: 'CRC',
     minimumFractionDigits: 0,
-  }).format(cents / 100);
+  }).format(amount / 100);
 };
 
 export const formatDate = (dateString: string) => {

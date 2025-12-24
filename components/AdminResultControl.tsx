@@ -128,7 +128,7 @@ export default function AdminResultControl({
     return () => clearInterval(interval);
   }, [charging, loading, success]);
 
-  const handleExecutePublication = async () => {
+  const handleExecutePublication = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.publishDrawResult({
@@ -170,7 +170,16 @@ export default function AdminResultControl({
       alert('Fallo de Inyección de Datos');
       setLoading(false);
     }
-  };
+  }, [
+    date,
+    selectedDraw,
+    winningNumber,
+    isReventado,
+    reventadoNumber,
+    user,
+    onPublishSuccess,
+    onClose,
+  ]);
 
   useEffect(() => {
     if (progress === 100 && !loading && !success) {
@@ -179,7 +188,7 @@ export default function AdminResultControl({
         handleExecutePublication();
       });
     }
-  }, [progress, loading, success]);
+  }, [progress, loading, success, handleExecutePublication]);
 
   if (!isOpen || !user) return null;
 

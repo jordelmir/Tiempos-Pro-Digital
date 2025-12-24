@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../services/edgeApi';
 import { DrawResult, DrawTime } from '../types';
 

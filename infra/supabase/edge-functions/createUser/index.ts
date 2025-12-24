@@ -5,19 +5,19 @@
 // Polyfill for environment to prevent build errors
 export {};
 declare const Deno: any;
-const SafeDeno = typeof Deno !== 'undefined' ? Deno : { env: { get: () => '' } };
-const serve = (handler: any) => {};
-const createClient = (url: string, key: string) => ({
+const termDeno = typeof Deno !== 'undefined' ? Deno : { env: { get: () => '' } };
+const serve = (_handler: unknown) => {};
+const createClient = (_url: string, _key: string) => ({
   from: () => ({ insert: () => ({ select: () => ({ single: () => ({}) }) }) }),
   rpc: () => {},
 });
 
-const SUPABASE_URL = SafeDeno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = SafeDeno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL = termDeno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = termDeno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-serve(async (req: any) => {
+serve(async (req: { json: () => Promise<Record<string, unknown>> }) => {
   try {
     const body = await req.json();
     const { name, email, role, balance_bigint, issuer_id, cedula, phone } = body;
@@ -26,7 +26,7 @@ serve(async (req: any) => {
     if (!['SuperAdmin', 'Vendedor', 'Cliente'].includes(role)) throw new Error('invalid role');
 
     // create app_user row (auth linkage must be managed separately)
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as unknown as { from: Function })
       .from('app_users')
       .insert([
         {
@@ -54,7 +54,8 @@ serve(async (req: any) => {
     });
 
     return new Response(JSON.stringify({ user: data }), { status: 201 });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ message: err.message }), { status: 400 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return new Response(JSON.stringify({ message: msg }), { status: 400 });
   }
 });
