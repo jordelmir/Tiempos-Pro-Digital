@@ -1296,10 +1296,6 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
       return { data: resultPayload as any };
     }
 
-    if (fn === 'createPaymentIntent') {
-      console.warn('Stripe integration disabled.');
-      return { error: 'Payments are currently disabled.' };
-    }
 
     if (fn === 'getWeeklyDataStats') {
       // Mock because real calculation is heavy and requires SQL function or robust query
@@ -1374,6 +1370,4 @@ export const api = {
   }) => invokeEdgeFunction<{ success: boolean; message: string }>('purgeWeeklyData', payload),
   generateAIAnalysis: async (payload: { drawTime: string }) =>
     invokeEdgeFunction<any>('generateAIAnalysis', payload),
-  createPaymentIntent: async (payload: { amount: number }) =>
-    invokeEdgeFunction<{ clientSecret: string; id: string }>('createPaymentIntent', payload),
 };

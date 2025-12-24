@@ -162,28 +162,6 @@ export default function RechargeModal({
                   INICIAR CARGA
                 </button>
 
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <button
-                    onClick={async () => {
-                      if (!amount) return;
-                      setLoading(true);
-                      const res = await api.createPaymentIntent({ amount: Number(amount) });
-                      setLoading(false);
-                      if (res.data) {
-                        alert(
-                          `Intent Created: ${res.data.id}\nClient Secret: ${res.data.clientSecret.slice(0, 10)}...`
-                        );
-                      } else {
-                        alert('Error creating payment intent: ' + res.error);
-                      }
-                    }}
-                    disabled={!amount || loading}
-                    className="w-full py-3 bg-[#635BFF] text-white font-display font-bold uppercase tracking-wider rounded-lg hover:bg-[#5851DF] transition-all flex items-center justify-center gap-2"
-                  >
-                    <i className="fab fa-stripe text-xl"></i>
-                    Pagar con Tarjeta
-                  </button>
-                </div>
               </div>
             )}
 
