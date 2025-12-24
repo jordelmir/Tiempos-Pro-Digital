@@ -159,6 +159,6 @@ CREATE POLICY "RLS_Draws_Select_Public" ON public.draw_results FOR SELECT TO aut
 -- (Assuming Admin might insert results too as per previous logic)
 CREATE POLICY "RLS_Draws_Insert_Admin" ON public.draw_results FOR INSERT TO authenticated WITH CHECK (
     auth_is_superadmin() 
-    OR EXISTS (SELECT 1 FROM public.app_users WHERE id = auth_get_app_user_id() AND role IN ('SuperAdmin', 'Admin'))
+    OR EXISTS (SELECT 1 FROM public.app_users WHERE id = auth_get_app_user_id() AND role IN ('SuperAdmin', 'Vendedor'))
 );
 
