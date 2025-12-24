@@ -61,7 +61,7 @@ export interface LedgerTransaction {
   balance_after: number;
   type: 'CREDIT' | 'DEBIT' | 'FEE' | 'ADJUSTMENT' | 'COMMISSION_PAYOUT';
   reference_id?: string;
-  meta?: any;
+  meta?: Record<string, unknown>;
   created_at: string;
 }
 
@@ -104,7 +104,7 @@ export interface AuditLog {
   action: string;
   severity: AuditSeverity;
   target_resource?: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   hash: string;
   previous_hash?: string;
 }
@@ -153,7 +153,7 @@ export interface WeeklyDataStats {
 
 export interface SystemSetting {
   key: string;
-  value: any;
+  value: unknown;
   description: string;
   group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
   updated_at: string;
@@ -167,7 +167,7 @@ export interface MasterCatalogItem {
   code: string;
   label: string;
   status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   order_index: number;
 }
 

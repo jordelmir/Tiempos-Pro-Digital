@@ -161,7 +161,6 @@ export default function RechargeModal({
                   <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover/btn:animate-[shine_0.5s_ease-in-out]"></div>
                   INICIAR CARGA
                 </button>
-
               </div>
             )}
 

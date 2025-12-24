@@ -15,7 +15,7 @@ interface MaintenanceState {
 
   // Actions
   fetchSettings: () => Promise<void>;
-  updateSetting: (key: string, value: any, actorId: string) => Promise<void>;
+  updateSetting: (key: string, value: unknown, actorId: string) => Promise<void>;
 
   fetchCatalogs: (category?: string) => Promise<void>;
   upsertCatalogItem: (item: Partial<MasterCatalogItem>, actorId: string) => Promise<void>;
@@ -41,8 +41,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     try {
       const res = await api.maintenance.getSettings();
       if (res.data) set({ settings: res.data });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Unknown error' });
     } finally {
       set({ loading: false });
     }
@@ -58,9 +58,9 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     try {
       const res = await api.maintenance.updateSetting({ key, value, actor_id: actorId });
       if (res.error) throw new Error(res.error);
-    } catch (e: any) {
+    } catch (e) {
       // Rollback
-      set({ settings: prevSettings, error: e.message });
+      set({ settings: prevSettings, error: e instanceof Error ? e.message : 'Update failed' });
     }
   },
 
@@ -69,8 +69,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     try {
       const res = await api.maintenance.getCatalogs({ category });
       if (res.data) set({ catalogs: res.data });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Fetch error' });
     } finally {
       set({ loading: false });
     }
@@ -88,8 +88,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
           return { catalogs: [res.data!, ...state.catalogs] };
         });
       }
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Upsert error' });
     }
   },
 
@@ -105,8 +105,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
       await new Promise((r) => setTimeout(r, 1200));
       const res = await api.maintenance.analyzePurge({ target, days });
       if (res.data) set({ analysis: res.data });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Analysis failed' });
     } finally {
       set({ isAnalyzing: false });
     }
@@ -117,8 +117,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     try {
       await api.maintenance.executePurge({ target, days, actor_id: actorId });
       set({ analysis: null }); // Clear analysis after run
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Purge failed' });
     } finally {
       set({ loading: false });
     }

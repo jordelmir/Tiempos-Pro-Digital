@@ -30,7 +30,7 @@ const generateTicketCode = (prefix: string) => {
   return `${prefix}-${result.substring(0, 3)}-${result.substring(3, 6)}`;
 };
 
-async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<ApiResponse<T>> {
+async function invokeEdgeFunction<T>(functionName: string, body: unknown): Promise<ApiResponse<T>> {
   try {
     const {
       data: { session },
@@ -49,13 +49,13 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           data: {
             server_time: new Date().toISOString(),
             draw_config: { mediodia: '12:55:00', tarde: '16:30:00', noche: '19:30:00' },
-          } as any,
+          },
         };
       }
 
       if (functionName === 'getGlobalSettings') {
         const settings = MockDB.getSettings();
-        return { data: settings as any };
+        return { data: settings };
       }
 
       if (functionName === 'updateGlobalMultiplier') {
@@ -70,7 +70,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           severity: AuditSeverity.WARNING,
           metadata: { base: body.baseValue, rev: body.reventadosValue },
         });
-        return { data: { success: true } as any };
+        return { data: { success: true } };
       }
 
       // 2. USER MANAGEMENT & TRANSACTIONS
@@ -107,18 +107,18 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           target_resource: newUser.id,
           metadata: { role: newUser.role, name: newUser.name },
         });
-        return { data: { user: newUser } as any };
+        return { data: { user: newUser as AppUser } };
       }
 
       if (functionName === 'checkIdentity') {
         const users = MockDB.getUsers();
-        const exists = users.find((u: any) => u.cedula === body.cedula);
+        const exists = users.find((u: AppUser) => u.cedula === body.cedula);
         return { data: exists || null };
       }
 
       if (functionName === 'rechargeUser') {
         const users = MockDB.getUsers();
-        const user = users.find((u: any) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === body.target_user_id);
         if (!user) return { error: 'Usuario no encontrado' };
 
         const oldBalance = user.balance_bigint;
@@ -149,12 +149,12 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           metadata: { amount: body.amount, new_balance: newBalance },
         });
 
-        return { data: { new_balance: newBalance, tx_id: `TX-${Date.now()}` } as any };
+        return { data: { new_balance: newBalance, tx_id: `TX-${Date.now()}` } };
       }
 
       if (functionName === 'withdrawUser') {
         const users = MockDB.getUsers();
-        const user = users.find((u: any) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === body.target_user_id);
         if (!user) return { error: 'Usuario no encontrado' };
 
         if (user.balance_bigint < body.amount) return { error: 'Fondos insuficientes' };
@@ -189,12 +189,12 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           metadata: { amount: body.amount, new_balance: newBalance },
         });
 
-        return { data: { new_balance: newBalance, tx_id: txId } as any };
+        return { data: { new_balance: newBalance, tx_id: txId } };
       }
 
       if (functionName === 'payVendor') {
         const users = MockDB.getUsers();
-        const user = users.find((u: any) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === body.target_user_id);
         if (!user) return { error: 'Vendedor no encontrado' };
 
         const oldBalance = user.balance_bigint;
@@ -226,12 +226,12 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           metadata: { amount: body.amount, concept: body.concept },
         });
 
-        return { data: { ticket_code: txCode } as any };
+        return { data: { ticket_code: txCode } };
       }
 
       if (functionName === 'updateUserStatus') {
         const users = MockDB.getUsers();
-        const user = users.find((u: any) => u.id === body.target_user_id);
+        const user = users.find((u: AppUser) => u.id === body.target_user_id);
         if (user) {
           user.status = body.status;
           MockDB.saveUser(user);
@@ -242,7 +242,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             severity: AuditSeverity.WARNING,
             target_resource: user.id,
           });
-          return { data: { success: true } as any };
+          return { data: { success: true } };
         }
         return { error: 'Usuario no encontrado' };
       }
@@ -258,14 +258,14 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           severity: AuditSeverity.CRITICAL,
           target_resource: body.target_user_id,
         });
-        return { data: { success: true } as any };
+        return { data: { success: true } };
       }
 
       // 3. BETTING ENGINE (CORE)
       if (functionName === 'placeBet') {
         const { data: authData } = await supabase.auth.getUser();
         const users = MockDB.getUsers();
-        const user = users.find((u: any) => u.auth_uid === authData.user?.id);
+        const user = users.find((u: AppUser) => u.auth_uid === authData.user?.id);
 
         if (!user) return { error: 'Usuario no autenticado' };
         if (user.balance_bigint < body.amount) return { error: 'Saldo insuficiente' };
@@ -276,7 +276,9 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
         );
 
         const settingsList = MockDB.getSettingsList();
-        const globalLimitSetting = settingsList.find((s: any) => s.key === 'GLOBAL_LIMIT');
+        const globalLimitSetting = settingsList.find(
+          (s: SystemSetting) => s.key === 'GLOBAL_LIMIT'
+        );
 
         let limit = Infinity;
         if (limitObj && limitObj.max_amount !== -2) {
@@ -292,7 +294,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             (b: any) =>
               b.numbers === body.numbers && b.draw_id === body.draw_id && b.status === 'PENDING'
           )
-          .reduce((acc: number, b: any) => acc + b.amount_bigint, 0);
+          .reduce((acc: number, b: Bet) => acc + b.amount_bigint, 0);
 
         if (limit !== -1 && currentExposure + body.amount > limit) {
           return {
@@ -332,15 +334,15 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           created_at: new Date().toISOString(),
         });
 
-        return { data: { bet_id: newBet.id, ticket_code: ticketCode } as any };
+        return { data: { bet_id: newBet.id, ticket_code: ticketCode } };
       }
 
       if (functionName === 'getGlobalBets') {
         const bets = MockDB.getBets();
         const users = MockDB.getUsers();
 
-        const enrichedBets = bets.map((b: any) => {
-          const u = users.find((us: any) => us.id === b.user_id);
+        const enrichedBets = bets.map((b: Bet) => {
+          const u = users.find((us: AppUser) => us.id === b.user_id);
           return {
             ...b,
             user_name: u ? u.name : 'Unknown',
@@ -353,25 +355,25 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
         if (body.userId && body.role !== 'SuperAdmin') {
           if (body.role === 'Vendedor') {
             const myClients = users
-              .filter((u: any) => u.issuer_id === body.userId)
-              .map((u: any) => u.id);
+              .filter((u: AppUser) => u.issuer_id === body.userId)
+              .map((u: AppUser) => u.id);
             filtered = enrichedBets.filter(
-              (b: any) => b.user_id === body.userId || myClients.includes(b.user_id)
+              (b: Bet) => b.user_id === body.userId || myClients.includes(b.user_id)
             );
           } else {
-            filtered = enrichedBets.filter((b: any) => b.user_id === body.userId);
+            filtered = enrichedBets.filter((b: Bet) => b.user_id === body.userId);
           }
         }
 
         if (body.statusFilter && body.statusFilter !== 'ALL') {
-          filtered = filtered.filter((b: any) => b.status === body.statusFilter);
+          filtered = filtered.filter((b: Bet) => b.status === body.statusFilter);
         }
 
         if (body.timeFilter && body.timeFilter !== 'ALL') {
-          filtered = filtered.filter((b: any) => b.draw_id && b.draw_id.includes(body.timeFilter));
+          filtered = filtered.filter((b: Bet) => b.draw_id && b.draw_id.includes(body.timeFilter));
         }
 
-        return { data: { bets: filtered } as any };
+        return { data: { bets: filtered } };
       }
 
       // 4. RESULTS & PAYOUT ENGINE (PAYMASTER)
@@ -396,7 +398,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
         let processedCount = 0;
         const updatedBets = [...bets];
 
-        updatedBets.forEach((bet: any) => {
+        updatedBets.forEach((bet: Bet) => {
           if (bet.status === 'PENDING' && bet.draw_id === body.drawTime) {
             let won = false;
             let payoutMultiplier = 0;
@@ -457,24 +459,24 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           metadata: { draw: body.drawTime, number: body.winningNumber, winners: processedCount },
         });
 
-        return { data: { success: true, processed: processedCount } as any };
+        return { data: { success: true, processed: processedCount } };
       }
 
       if (functionName === 'getLiveResults') {
         const results = MockDB.getResults();
         // Standardizing output from already standardized DB
-        return { data: { results: results, history: results } as any };
+        return { data: { results: results as DrawResult[], history: results as DrawResult[] } };
       }
 
       // 5. RISK & MAINTENANCE
       if (functionName === 'getRiskLimits') {
-        return { data: { limits: MockDB.getLimits() } as any };
+        return { data: { limits: MockDB.getLimits() } };
       }
       if (functionName === 'getRiskStats') {
         const bets = MockDB.getBets();
         const statsMap = new Map<string, number>();
 
-        bets.forEach((b: any) => {
+        bets.forEach((b: Bet) => {
           if (b.status === 'PENDING' && b.draw_id === body.draw) {
             const current = statsMap.get(b.numbers) || 0;
             statsMap.set(b.numbers, current + b.amount_bigint);
@@ -487,7 +489,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           risk_percentage: 0,
         }));
 
-        return { data: { stats } as any };
+        return { data: { stats } };
       }
 
       if (functionName === 'updateRiskLimit') {
@@ -496,21 +498,21 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           number: body.number,
           max_amount: body.max_amount,
         });
-        return { data: { success: true } as any };
+        return { data: { success: true } };
       }
 
       if (functionName === 'getMaintenanceSettings') {
-        return { data: MockDB.getSettingsList() as any };
+        return { data: MockDB.getSettingsList() };
       }
       if (functionName === 'updateMaintenanceSetting') {
         MockDB.updateSetting(body.key, body.value);
-        return { data: { success: true } as any };
+        return { data: { success: true } };
       }
       if (functionName === 'getCatalogs') {
-        return { data: [] as any };
+        return { data: [] as MasterCatalogItem[] };
       }
       if (functionName === 'analyzePurge') {
-        return { data: MockDB.analyzePurge(body.target, body.days) as any };
+        return { data: MockDB.analyzePurge(body.target, body.days) };
       }
       if (functionName === 'executePurge') {
         if (body.target === 'DEEP_CLEAN') {
@@ -528,11 +530,11 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             target_resource: 'ALL_HISTORICAL_DATA',
             metadata: { records_deleted: count, cutoff_days: body.days },
           });
-          return { data: { success: true, count } as any };
+          return { data: { success: true, count } };
         }
 
         const count = MockDB.executePurge(body.target, body.days);
-        return { data: { success: true, count } as any };
+        return { data: { success: true, count } };
       }
 
       if (functionName === 'getWeeklyDataStats') {
@@ -544,7 +546,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           return Math.ceil(((d.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
         };
 
-        bets.forEach((b: any) => {
+        bets.forEach((b: Bet) => {
           const date = new Date(b.created_at);
           const weekNum = getWeek(date);
           const year = date.getFullYear();
@@ -595,7 +597,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           }
         }
 
-        return { data: { stats: statsArray } as any };
+        return { data: { stats: statsArray } };
       }
 
       if (functionName === 'purgeWeeklyData') {
@@ -618,7 +620,7 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             target_resource: `WEEK-${body.weekNumber}-ALL`,
             metadata: { records_deleted: count },
           });
-          return { data: { success: true, message: 'Sistema purgado.' } as any };
+          return { data: { success: true, message: 'Sistema purgado.' } };
         }
 
         if (body.confirmation !== 'CONFIRMAR LIMPIEZA' && body.confirmation !== 'ARCHIVAR LOGS')
@@ -632,10 +634,10 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
           target_resource: `WEEK-${body.weekNumber}`,
           metadata: { year: body.year },
         });
-        return { data: { success: true, message: 'Limpieza realizada' } as any };
+        return { data: { success: true, message: 'Limpieza realizada' } };
       }
 
-      return { message: 'Simulación exitosa' } as any;
+      return { data: { message: 'Simulación exitosa' } };
     }
 
     // --- DIRECT DB MODE (Serverless Fallback) ---
@@ -650,13 +652,17 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
 }
 
 // --- HYBRID CLIENT-SIDE IMPLEMENTATION ---
-async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<ApiResponse<T>> {
+async function executeDirectDB<T>(
+  fn: string,
+  body: unknown,
+  session: any
+): Promise<ApiResponse<T>> {
   // AUDIT LOGGING HELPER
   const logAudit = async (
     action: string,
     type: string,
     severity: string,
-    metadata: any = {},
+    metadata: unknown = {},
     target?: string
   ) => {
     if (!session?.user?.id) return;
@@ -704,7 +710,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         data: {
           server_time: now.toISOString(),
           draw_config: { mediodia: '12:55:00', tarde: '16:30:00', noche: '19:30:00' },
-        } as any,
+        },
       };
     }
 
@@ -773,7 +779,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         ticketCode
       );
 
-      return { data: { bet_id: bet.id, ticket_code: ticketCode } as any };
+      return { data: { bet_id: bet.id, ticket_code: ticketCode } };
     }
 
     // 3. SETTINGS
@@ -782,7 +788,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
       const multT = data?.find((s) => s.key === 'MULTIPLIER_TIEMPOS')?.value || 90;
       const multR = data?.find((s) => s.key === 'MULTIPLIER_REVENTADOS')?.value || 200;
       return {
-        data: { multiplier_tiempos: Number(multT), multiplier_reventados: Number(multR) } as any,
+        data: { multiplier_tiempos: Number(multT), multiplier_reventados: Number(multR) },
       };
     }
 
@@ -814,7 +820,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
           'Global Settings'
         );
 
-        return { data: { success: true } as any };
+        return { data: { success: true } };
       } catch (e: any) {
         console.error('Update Settings Failed:', e);
         return { error: 'Error actualizando configuración global' };
@@ -849,7 +855,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         { amount: body.amount, newBalance: newBal },
         user.id
       );
-      return { data: { new_balance: newBal, tx_id: txId } as any };
+      return { data: { new_balance: newBal, tx_id: txId } };
     }
 
     if (fn === 'withdrawUser') {
@@ -881,7 +887,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         { amount: body.amount, newBalance: newBal },
         user.id
       );
-      return { data: { new_balance: newBal, tx_id: txId } as any };
+      return { data: { new_balance: newBal, tx_id: txId } };
     }
 
     if (fn === 'createUser') {
@@ -951,7 +957,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         newUser.id
       );
 
-      return { data: { user: newUser } as any };
+      return { data: { user: newUser as AppUser } };
     }
 
     // 5. MAINTENANCE & PURGE
@@ -983,7 +989,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
           estimatedSizeKB: Math.round(count * 0.5),
           riskLevel: count > 1000 ? 'HIGH' : 'LOW',
           description: `Se encontraron ${count} registros antiguos.`,
-        } as any,
+        },
       };
     }
 
@@ -1021,7 +1027,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         { target, deleted: totalDeleted, cutoff: cutoffStr },
         'SYSTEM'
       );
-      return { data: { success: true, count: totalDeleted } as any };
+      return { data: { success: true, count: totalDeleted } };
     }
 
     if (fn === 'updateUserStatus') {
@@ -1039,7 +1045,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         { status },
         target_user_id
       );
-      return { data: { success: true } as any };
+      return { data: { success: true } };
     }
 
     if (fn === 'deleteUser') {
@@ -1066,7 +1072,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         { hard_delete: !error },
         target_user_id
       );
-      return { data: { success: true } as any };
+      return { data: { success: true } };
     }
 
     if (fn === 'getGlobalBets') {
@@ -1074,7 +1080,9 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
       // We perform manual fetch of users to avoid potential PostgREST FK detection issues
       let query = supabase.from('bets').select('*');
 
-      if (body.userId && body.role !== 'SuperAdmin') {
+      if (body.userId && body.role === 'Cliente') {
+        // Strict isolation for Cliente (only see own bets).
+        // For Vendedor/SuperAdmin, we rely on RLS to show their scope (including downlines).
         query = query.eq('user_id', body.userId);
       }
 
@@ -1097,10 +1105,10 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         return { error: 'Error al cargar el registro de transmisiones' };
       }
 
-      if (!betsData || betsData.length === 0) return { data: { bets: [] } as any };
+      if (!betsData || betsData.length === 0) return { data: { bets: [] } };
 
       // Fetch Users Manually
-      const userIds = [...new Set(betsData.map((b: any) => b.user_id).filter(Boolean))];
+      const userIds = [...new Set(betsData.map((b: Bet) => b.user_id).filter(Boolean))];
       let usersData: any[] = [];
 
       if (userIds.length > 0) {
@@ -1116,8 +1124,8 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
       }
 
       // Merge Data
-      const enrichedBets = betsData.map((b: any) => {
-        const u = usersData.find((user: any) => user.id === b.user_id);
+      const enrichedBets = betsData.map((b: Bet) => {
+        const u = usersData.find((user: AppUser) => user.id === b.user_id);
         return {
           ...b,
           user_name: u?.name || 'Desconocido',
@@ -1125,7 +1133,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         };
       });
 
-      return { data: { bets: enrichedBets } as any };
+      return { data: { bets: enrichedBets } };
     }
 
     if (fn === 'publishDrawResult') {
@@ -1260,7 +1268,7 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
         `${date}:${drawTime}`
       );
 
-      return { data: { success: true, processed: processedCount } as any };
+      return { data: { success: true, processed: processedCount } };
     }
 
     if (fn === 'getLiveResults') {
@@ -1293,13 +1301,12 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
                         } catch (ignore) { }
                         */
 
-      return { data: resultPayload as any };
+      return { data: resultPayload };
     }
-
 
     if (fn === 'getWeeklyDataStats') {
       // Mock because real calculation is heavy and requires SQL function or robust query
-      return { data: { stats: [] } as any };
+      return { data: { stats: [] } };
     }
 
     console.warn(`[DirectDB] Function ${fn} not implemented. Check console.`);
@@ -1310,46 +1317,55 @@ async function executeDirectDB<T>(fn: string, body: any, session: any): Promise<
 }
 
 export const api = {
-  createUser: async (payload: any) => invokeEdgeFunction<{ user: AppUser }>('createUser', payload),
+  createUser: async (payload: unknown) =>
+    invokeEdgeFunction<{ user: AppUser }>('createUser', payload),
   checkIdentityAvailability: async (cedula: string) =>
     invokeEdgeFunction<AppUser | null>('checkIdentity', { cedula }),
-  updateUserStatus: async (payload: any) => invokeEdgeFunction<any>('updateUserStatus', payload),
-  deleteUser: async (payload: any) => invokeEdgeFunction<any>('deleteUser', payload),
-  rechargeUser: async (payload: any) =>
+  updateUserStatus: async (payload: unknown) =>
+    invokeEdgeFunction<{ success: boolean }>('updateUserStatus', payload),
+  deleteUser: async (payload: unknown) =>
+    invokeEdgeFunction<{ success: boolean }>('deleteUser', payload),
+  rechargeUser: async (payload: unknown) =>
     invokeEdgeFunction<TransactionResponse>('rechargeUser', payload),
-  withdrawUser: async (payload: any) =>
+  withdrawUser: async (payload: unknown) =>
     invokeEdgeFunction<TransactionResponse>('withdrawUser', payload),
-  payVendor: async (payload: any) =>
+  payVendor: async (payload: unknown) =>
     invokeEdgeFunction<{ ticket_code: string }>('payVendor', payload),
   getServerTime: async () =>
-    invokeEdgeFunction<{ server_time: string; draw_config: any }>('getServerTime', {}),
+    invokeEdgeFunction<{ server_time: string; draw_config: Record<string, string> }>(
+      'getServerTime',
+      {}
+    ),
   getGlobalSettings: async () =>
     invokeEdgeFunction<{ multiplier_tiempos: number; multiplier_reventados: number }>(
       'getGlobalSettings',
       {}
     ),
-  updateGlobalMultiplier: async (payload: any) =>
-    invokeEdgeFunction<any>('updateGlobalMultiplier', payload),
-  placeBet: async (payload: any) =>
+  updateGlobalMultiplier: async (payload: unknown) =>
+    invokeEdgeFunction<{ success: boolean }>('updateGlobalMultiplier', payload),
+  placeBet: async (payload: unknown) =>
     invokeEdgeFunction<{ bet_id: string; ticket_code: string }>('placeBet', payload),
-  getGlobalBets: async (payload: any) =>
+  getGlobalBets: async (payload: unknown) =>
     invokeEdgeFunction<{ bets: Bet[] }>('getGlobalBets', payload),
   getLiveResults: async () =>
     invokeEdgeFunction<{ results: DrawResult[]; history: DrawResult[] }>('getLiveResults', {}),
   publishDrawResult: async (payload: DrawResultPayload) =>
-    invokeEdgeFunction<any>('publishDrawResult', payload),
-  getRiskLimits: async (payload: any) => invokeEdgeFunction<any>('getRiskLimits', payload),
-  getRiskStats: async (payload: any) => invokeEdgeFunction<any>('getRiskStats', payload),
-  updateRiskLimit: async (payload: any) => invokeEdgeFunction<any>('updateRiskLimit', payload),
+    invokeEdgeFunction<{ success: boolean; processed: number }>('publishDrawResult', payload),
+  getRiskLimits: async (payload: unknown) =>
+    invokeEdgeFunction<{ limits: unknown[] }>('getRiskLimits', payload),
+  getRiskStats: async (payload: unknown) =>
+    invokeEdgeFunction<{ stats: unknown[] }>('getRiskStats', payload),
+  updateRiskLimit: async (payload: unknown) =>
+    invokeEdgeFunction<{ success: boolean }>('updateRiskLimit', payload),
   generateRiskAnalysis: async (payload: { draw: string }) =>
     invokeEdgeFunction<RiskAnalysisReport>('generateRiskAnalysis', payload),
   maintenance: {
     getSettings: async () => invokeEdgeFunction<SystemSetting[]>('getMaintenanceSettings', {}),
-    updateSetting: async (payload: { key: string; value: any; actor_id: string }) =>
+    updateSetting: async (payload: { key: string; value: unknown; actor_id: string }) =>
       invokeEdgeFunction<void>('updateMaintenanceSetting', payload),
     getCatalogs: async (payload: { category?: string }) =>
       invokeEdgeFunction<MasterCatalogItem[]>('getCatalogs', payload),
-    upsertCatalog: async (payload: any) =>
+    upsertCatalog: async (payload: unknown) =>
       invokeEdgeFunction<MasterCatalogItem>('upsertCatalog', payload),
     softDeleteCatalog: async (payload: { id: string; actor_id: string }) =>
       invokeEdgeFunction<void>('softDeleteCatalog', payload),
@@ -1369,5 +1385,5 @@ export const api = {
     actor_id: string;
   }) => invokeEdgeFunction<{ success: boolean; message: string }>('purgeWeeklyData', payload),
   generateAIAnalysis: async (payload: { drawTime: string }) =>
-    invokeEdgeFunction<any>('generateAIAnalysis', payload),
+    invokeEdgeFunction<Record<string, unknown>>('generateAIAnalysis', payload),
 };
