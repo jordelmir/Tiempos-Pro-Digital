@@ -1,18 +1,27 @@
+
+
 export enum UserRole {
   SuperAdmin = 'SuperAdmin',
   Vendedor = 'Vendedor',
-  Cliente = 'Cliente',
+  Cliente = 'Cliente'
+}
+
+export enum LotteryRegion {
+  TICA = 'CR',
+  NICA = 'NI',
+  DOMINICANA = 'DO',
+  PANAMENA = 'PA'
 }
 
 export enum DrawTime {
   MEDIODIA = 'Mediodía (12:55)',
   TARDE = 'Tarde (16:30)',
-  NOCHE = 'Noche (19:30)',
+  NOCHE = 'Noche (19:30)'
 }
 
 export enum GameMode {
   TIEMPOS = 'Nuevos Tiempos (90x)',
-  REVENTADOS = 'Reventados (200x)',
+  REVENTADOS = 'Reventados (200x)'
 }
 
 export interface AppUser {
@@ -24,6 +33,7 @@ export interface AppUser {
   phone: string;
   role: UserRole;
   balance_bigint: number;
+  loyalty_points: number; // NUEVO: Para sistema de canje SIPR
   currency: string;
   status: 'Active' | 'Suspended' | 'Deleted';
   pin_hash?: string;
@@ -32,11 +42,15 @@ export interface AppUser {
   issuer_id?: string;
   created_at: string;
   updated_at: string;
-  active_numbers?: string[];
-  recent_sale?: {
-    target: string;
-    amount: number;
-  };
+}
+
+export interface RiskAnalysisSIPR {
+    number: string;
+    exposure_percent: number; // 0-100
+    risk_status: 'CYAN' | 'AMBAR' | 'BLOOD_RED';
+    is_blocked: boolean;
+    is_recommended: boolean;
+    points_multiplier: number;
 }
 
 export interface Bet {
@@ -52,16 +66,39 @@ export interface Bet {
   created_at: string;
 }
 
+export interface DrawResult {
+    id: string;
+    region: LotteryRegion;
+    date: string;
+    drawTime: DrawTime;
+    winningNumber: string;
+    isReventado: boolean;
+    reventadoNumber?: string;
+    status: 'OPEN' | 'CLOSED' | 'VERIFYING';
+    created_at: string;
+}
+
+/**
+ * Payload for publishing a new draw result.
+ */
+export interface DrawResultPayload {
+    date: string;
+    drawTime: DrawTime;
+    region: LotteryRegion;
+    winningNumber: string;
+    isReventado: boolean;
+    actor_id: string;
+}
+
 export interface LedgerTransaction {
   id: string;
-  ticket_code?: string;
   user_id: string;
   amount_bigint: number;
   balance_before: number;
   balance_after: number;
-  type: 'CREDIT' | 'DEBIT' | 'FEE' | 'ADJUSTMENT' | 'COMMISSION_PAYOUT';
+  type: 'CREDIT' | 'DEBIT' | 'FEE' | 'ADJUSTMENT' | 'COMMISSION_PAYOUT' | 'LOYALTY_REDEEM';
   reference_id?: string;
-  meta?: Record<string, unknown>;
+  meta?: any;
   created_at: string;
 }
 
@@ -70,7 +107,7 @@ export enum AuditSeverity {
   SUCCESS = 'SUCCESS',
   WARNING = 'WARNING',
   CRITICAL = 'CRITICAL',
-  FORENSIC = 'FORENSIC',
+  FORENSIC = 'FORENSIC'
 }
 
 export enum AuditEventType {
@@ -89,6 +126,7 @@ export enum AuditEventType {
   AI_OPERATION = 'AI_OPERATION',
   MAINTENANCE_OP = 'MAINTENANCE_OP',
   FINANCIAL_OP = 'FINANCIAL_OP',
+  SIPR_LOCKDOWN = 'SIPR_LOCKDOWN'
 }
 
 export interface AuditLog {
@@ -104,7 +142,7 @@ export interface AuditLog {
   action: string;
   severity: AuditSeverity;
   target_resource?: string;
-  metadata: Record<string, unknown>;
+  metadata: any;
   hash: string;
   previous_hash?: string;
 }
@@ -115,31 +153,21 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export type PurgeTarget = 'BETS_HISTORY' | 'AUDIT_LOGS' | 'RESULTS_HISTORY' | 'LEDGER_OLD' | 'DEEP_CLEAN';
+
+export interface PurgeAnalysis {
+    target: PurgeTarget;
+    cutoffDate: string;
+    recordCount: number;
+    estimatedSizeKB: number;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    canProceed: boolean;
+    description: string;
+}
+
 export interface TransactionResponse {
-  tx_id: string;
-  ticket_code: string;
   new_balance: number;
-  timestamp: string;
-}
-
-export interface DrawResultPayload {
-  date: string;
-  drawTime: DrawTime;
-  winningNumber: string;
-  isReventado: boolean;
-  reventadoNumber?: string;
-  actor_id: string;
-}
-
-export interface DrawResult {
-  id: string;
-  date: string;
-  drawTime: DrawTime;
-  winningNumber: string;
-  isReventado: boolean;
-  reventadoNumber?: string;
-  status: 'OPEN' | 'CLOSED' | 'VERIFYING';
-  created_at: string;
+  tx_id: string;
 }
 
 export interface WeeklyDataStats {
@@ -151,61 +179,35 @@ export interface WeeklyDataStats {
   sizeEstimate: string;
 }
 
+export interface RiskAnalysisReport {
+  draw: string;
+  timestamp: string;
+  stats: any[];
+}
+
 export interface SystemSetting {
   key: string;
-  value: unknown;
-  description: string;
-  group: 'CORE' | 'FINANCE' | 'RISK' | 'UI';
-  updated_at: string;
-  updated_by: string;
-  is_locked?: boolean;
+  value: any;
+  label?: string;
+  description?: string;
 }
 
 export interface MasterCatalogItem {
   id: string;
   category: string;
-  code: string;
+  value: string;
   label: string;
-  status: 'ACTIVE' | 'ARCHIVED' | 'DELETED';
-  metadata?: Record<string, unknown>;
-  order_index: number;
+  meta?: any;
 }
 
-export type PurgeTarget =
-  | 'BETS_HISTORY'
-  | 'AUDIT_LOGS'
-  | 'RESULTS_HISTORY'
-  | 'LEDGER_OLD'
-  | 'DEEP_CLEAN';
-
-export interface PurgeAnalysis {
-  target: PurgeTarget;
-  cutoffDate: string;
-  recordCount: number;
-  estimatedSizeKB: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  canProceed: boolean;
-  description: string;
-}
-
-// Added missing RiskLimit export
 export interface RiskLimit {
-  draw_type: string;
   number: string;
   max_amount: number;
+  draw_type: string;
 }
 
-// Added missing RiskLimitStats export
 export interface RiskLimitStats {
   number: string;
   total_sold: number;
   risk_percentage: number;
-}
-
-// Added missing RiskAnalysisReport export
-export interface RiskAnalysisReport {
-  draw: string;
-  timestamp: string;
-  stats: RiskLimitStats[];
-  recommendations: string[];
 }

@@ -22,7 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vercel
-
-/lib/generated/prisma
-.env

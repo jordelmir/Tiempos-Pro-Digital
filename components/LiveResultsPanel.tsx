@@ -1,135 +1,111 @@
+
 import React, { useState } from 'react';
 import { useLiveResults } from '../hooks/useLiveResults';
-import { DrawTime, UserRole } from '../types';
+import { DrawTime, UserRole, LotteryRegion } from '../types';
 import { useAuthStore } from '../store/useAuthStore';
 import WinningNumberCard from './WinningNumberCard';
-import AdminResultControl from './AdminResultControl';
+import AdminResultControl from './AdminResultControl'; 
+import AnimatedIconUltra from './ui/AnimatedIconUltra';
 
 export default function LiveResultsPanel() {
-  const { user } = useAuthStore();
-  const { getResultByDraw, loading, isOffline } = useLiveResults();
-  const [editDraw, setEditDraw] = useState<DrawTime | null>(null);
+    const { user } = useAuthStore();
+    const { getResultsForTime, loading } = useLiveResults();
+    const [editDraw, setEditDraw] = useState<DrawTime | null>(null);
+    const [activeRegion, setActiveRegion] = useState<LotteryRegion>(LotteryRegion.TICA);
 
-  // --- THEME ENGINE FOR ROLE BADGE ---
-  const getRoleTheme = () => {
-    switch (user?.role) {
-      case UserRole.SuperAdmin:
-        return 'border-cyber-emerald text-cyber-emerald bg-emerald-950/30 shadow-[0_0_20px_rgba(16,185,129,0.4)]';
-      case UserRole.Vendedor:
-        return 'border-cyber-purple text-cyber-purple bg-purple-950/30 shadow-[0_0_20px_rgba(188,19,254,0.4)]';
-      case UserRole.Cliente:
-      default:
-        // Using Neon Cyan for Players (High Contrast)
-        return 'border-cyber-neon text-cyber-neon bg-cyan-950/30 shadow-[0_0_20px_rgba(0,240,255,0.4)]';
-    }
-  };
+    return (
+        <div className="relative w-full group max-w-[1600px] mx-auto">
+            <AdminResultControl 
+                isOpen={!!editDraw} 
+                onClose={() => setEditDraw(null)} 
+                initialDraw={editDraw}
+                initialRegion={activeRegion}
+            />
 
-  return (
-    <div className="relative w-full group">
-      <AdminResultControl
-        isOpen={!!editDraw}
-        onClose={() => setEditDraw(null)}
-        initialDraw={editDraw}
-      />
+            {/* MAIN COMMAND HUD */}
+            <div className="relative w-full bg-[#02040a] border-2 border-white/10 rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 lg:p-16 overflow-hidden z-10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+                
+                {/* Visual HUD Decoration */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-neon to-transparent opacity-50"></div>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none"></div>
 
-      {/* --- CORE BACKLIGHT (Adaptive to Role) --- */}
-      <div
-        className={`absolute -inset-1 rounded-[2.5rem] opacity-30 blur-2xl animate-pulse transition-all duration-1000 group-hover:opacity-50 group-hover:blur-3xl ${
-          user?.role === UserRole.Vendedor
-            ? 'bg-cyber-purple'
-            : user?.role === UserRole.Cliente
-              ? 'bg-cyber-neon'
-              : 'bg-cyber-emerald'
-        }`}
-      ></div>
+                <div className="flex flex-col lg:flex-row justify-between items-center mb-12 lg:mb-20 relative z-10 gap-10">
+                    <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                        <div className="relative">
+                            <div className="absolute -inset-6 bg-cyber-neon/10 blur-2xl rounded-full animate-pulse"></div>
+                            <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl bg-black border-2 border-cyber-neon/50 flex items-center justify-center shadow-neon-cyan relative z-10 transition-transform duration-700 hover:rotate-6">
+                                <AnimatedIconUltra profile={{ animation: 'spin3d', speed: 6, theme: 'neon' }}>
+                                    <i className="fas fa-microchip text-4xl md:text-5xl text-cyber-neon"></i>
+                                </AnimatedIconUltra>
+                            </div>
+                        </div>
+                        <div>
+                            <h2 className="text-5xl md:text-6xl font-display font-black text-white uppercase tracking-tighter flex flex-col leading-none">
+                                <span className="text-xs md:text-sm font-mono text-cyber-neon tracking-[0.6em] mb-2 font-bold">CORE_SERVER_v5.5</span>
+                                NÚCLEO <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-400 to-slate-600 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">MANDO</span>
+                            </h2>
+                            <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 mt-6">
+                                <div className="px-5 py-1.5 rounded-full bg-cyber-success/10 border border-cyber-success/40 flex items-center gap-3 backdrop-blur-md">
+                                    <div className="w-2 h-2 bg-cyber-success rounded-full animate-ping"></div>
+                                    <span className="text-[10px] md:text-[11px] font-black text-cyber-success uppercase tracking-widest">RED_MULTINODO_ACTIVA</span>
+                                </div>
+                                <div className="h-4 w-px bg-white/10 hidden md:block"></div>
+                                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Protocolo Phront Maestro</span>
+                            </div>
+                        </div>
+                    </div>
 
-      {/* MAIN CONTAINER (Solid Core) */}
-      <div
-        className={`relative w-full bg-[#050a14] border rounded-3xl p-6 md:p-8 overflow-hidden z-10 transition-colors duration-500 ${
-          user?.role === UserRole.Vendedor
-            ? 'border-cyber-purple/40 shadow-[0_0_50px_rgba(188,19,254,0.1)]'
-            : user?.role === UserRole.Cliente
-              ? 'border-cyber-neon/40 shadow-[0_0_50px_rgba(0,240,255,0.1)]'
-              : 'border-cyber-emerald/40 shadow-[0_0_50px_rgba(16,185,129,0.1)]'
-        }`}
-      >
-        {/* Background Matrix Scanline */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_50%,transparent_50%)] bg-[length:100%_4px] pointer-events-none opacity-30"></div>
+                    <div className="hidden xl:flex items-center gap-12 bg-black/40 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-xl">
+                        <div className="text-right">
+                            <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">LATENCIA_RED</div>
+                            <div className="text-2xl font-mono font-bold text-white flex items-center justify-end gap-2">
+                                0.08<span className="text-xs text-cyber-neon">ms</span>
+                            </div>
+                        </div>
+                        <div className="w-px h-14 bg-white/10"></div>
+                        <div className="text-right">
+                            <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">NÚCLEOS_SINC</div>
+                            <div className="text-2xl font-mono font-bold text-cyber-success text-glow-sm">4/4</div>
+                        </div>
+                    </div>
+                </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 relative z-10">
-          <div>
-            <h2 className="text-2xl font-display font-black text-white uppercase tracking-widest flex items-center gap-3 drop-shadow-lg">
-              <i
-                className={`fas fa-broadcast-tower animate-pulse drop-shadow-[0_0_10px_currentColor] ${
-                  user?.role === UserRole.Vendedor
-                    ? 'text-cyber-purple'
-                    : user?.role === UserRole.Cliente
-                      ? 'text-cyber-neon'
-                      : 'text-cyber-emerald'
-                }`}
-              ></i>
-              Resultados{' '}
-              <span
-                className={`text-transparent bg-clip-text bg-gradient-to-r ${
-                  user?.role === UserRole.Vendedor
-                    ? 'from-white via-purple-200 to-purple-500'
-                    : user?.role === UserRole.Cliente
-                      ? 'from-white via-cyan-200 to-cyan-500'
-                      : 'from-white via-emerald-200 to-emerald-500'
-                }`}
-              >
-                En Vivo
-              </span>
-            </h2>
-            <div className="flex items-center gap-2 mt-2">
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${isOffline ? 'bg-red-500 animate-bounce' : 'bg-cyber-success shadow-[0_0_5px_#0aff60] animate-ping'}`}
-              ></div>
-              <span
-                className={`text-[9px] font-mono uppercase tracking-widest font-bold ${isOffline ? 'text-red-500' : 'text-slate-500'}`}
-              >
-                {isOffline ? 'ENLACE PERDIDO' : 'SEÑAL SATELITAL SEGURA'}
-              </span>
+                {loading ? (
+                    <div className="h-[500px] flex flex-col items-center justify-center gap-8">
+                        <div className="relative w-28 h-28">
+                             <div className="absolute inset-0 border-4 border-cyber-neon/20 rounded-full"></div>
+                             <div className="absolute inset-0 border-4 border-cyber-neon border-t-transparent rounded-full animate-spin shadow-neon-cyan"></div>
+                        </div>
+                        <span className="text-xs font-mono text-cyber-neon animate-pulse uppercase tracking-[0.8em] font-black">Descifrando Flujo Temporal...</span>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-12 relative z-10">
+                        {[DrawTime.MEDIODIA, DrawTime.TARDE, DrawTime.NOCHE].map(time => {
+                            const timeResults = getResultsForTime(time);
+                            return (
+                                <WinningNumberCard 
+                                    key={time}
+                                    drawTime={time} 
+                                    results={timeResults} 
+                                    role={user?.role || UserRole.Cliente}
+                                    region={activeRegion}
+                                    onEdit={() => setEditDraw(time)}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Cyber Footer Decoration */}
+                <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 opacity-40">
+                    <div className="text-[9px] font-mono text-white uppercase tracking-[0.4em]">Fuerza_Operativa_Digital_V5.5</div>
+                    <div className="flex gap-3">
+                        {[1,2,3,4,5,6,7].map(i => (
+                            <div key={i} className={`w-6 h-1 rounded-full ${i % 2 === 0 ? 'bg-cyber-neon' : 'bg-slate-700'}`}></div>
+                        ))}
+                    </div>
+                </div>
             </div>
-          </div>
-
-          {/* Role Badge - DYNAMIC THEME */}
-          <div
-            className={`px-6 py-2 rounded-lg border-2 text-[10px] font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-all duration-500 flex items-center gap-2 ${getRoleTheme()}`}
-          >
-            <i className="fas fa-eye opacity-70"></i>
-            VISTA: {user?.role === UserRole.SuperAdmin ? 'ADMIN' : user?.role}
-          </div>
         </div>
-
-        {loading ? (
-          <div className="h-40 flex flex-col items-center justify-center text-slate-500 font-mono animate-pulse gap-4">
-            <i className="fas fa-circle-notch fa-spin text-3xl"></i>
-            <span className="tracking-widest text-xs">SINTONIZANDO FRECUENCIA...</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            <WinningNumberCard
-              drawTime={DrawTime.MEDIODIA}
-              result={getResultByDraw(DrawTime.MEDIODIA)}
-              role={user?.role || UserRole.Cliente}
-              onEdit={() => setEditDraw(DrawTime.MEDIODIA)}
-            />
-            <WinningNumberCard
-              drawTime={DrawTime.TARDE}
-              result={getResultByDraw(DrawTime.TARDE)}
-              role={user?.role || UserRole.Cliente}
-              onEdit={() => setEditDraw(DrawTime.TARDE)}
-            />
-            <WinningNumberCard
-              drawTime={DrawTime.NOCHE}
-              result={getResultByDraw(DrawTime.NOCHE)}
-              role={user?.role || UserRole.Cliente}
-              onEdit={() => setEditDraw(DrawTime.NOCHE)}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
 }

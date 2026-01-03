@@ -1,4 +1,4 @@
-// Middleware is not supported in client-side Vite builds.
+// Middleware is not supported in client-side Vite builds. 
 // This file is retained as a placeholder but disabled to prevent build conflicts.
 
 /*
