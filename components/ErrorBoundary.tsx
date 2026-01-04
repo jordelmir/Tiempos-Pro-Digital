@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -14,36 +13,33 @@ interface State {
 /**
  * ErrorBoundary class component to catch rendering errors in the component tree.
  */
-// Fix: Explicitly import Component and extend it to ensure setState and props are inherited correctly.
 export default class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    // Fix: Initializing state in constructor instead of shadowing the property at class level.
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null
-    };
-  }
+  // Use class fields for state to ensure TypeScript correctly recognizes inherited members from Component
+  public override state: State = {
+    hasError: false,
+    error: null,
+    errorInfo: null
+  };
 
   /**
    * Static lifecycle method to update state on render error.
    */
   public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
     return { hasError: true, error, errorInfo: null };
   }
 
   /**
    * Lifecycle method to handle error side effects and update state trace.
    */
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
-    // Fix: Access setState via standard React Component inheritance.
+    // Use setState which is inherited from Component base class
     this.setState({ error, errorInfo });
   }
 
-  public render(): ReactNode {
-    // Fix: Access state from correctly inherited Component state.
+  public override render(): ReactNode {
+    // state and props are correctly recognized as instance members inherited from Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-black text-red-500 font-mono p-8 flex flex-col items-center justify-center relative overflow-hidden selection:bg-red-500 selection:text-black">
@@ -65,7 +61,6 @@ export default class ErrorBoundary extends Component<Props, State> {
             <div className="mb-8 p-4 bg-red-950/20 border border-red-900/50 rounded overflow-auto max-h-60">
               <p className="text-xl font-bold mb-2 text-white">Error Trace:</p>
               <pre className="text-xs text-red-300 whitespace-pre-wrap break-all">
-                {/* Fix: Access state error correctly. */}
                 {this.state.error && this.state.error.toString()}
                 <br />
                 {this.state.errorInfo && this.state.errorInfo.componentStack}
@@ -95,7 +90,6 @@ export default class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Access children from inherited props.
     return this.props.children;
   }
 }

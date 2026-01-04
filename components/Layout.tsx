@@ -1,4 +1,3 @@
-
 import React, { ReactNode, useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { UserRole } from '../types';
@@ -37,8 +36,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   if (!user) return <>{children}</>;
 
+  // MODIFICACIÓN: z-10 y bg-transparent para visibilidad del fondo Matrix en z-0
   return (
-    <div className={`min-h-screen flex flex-col text-slate-200 font-sans selection:bg-[#39FF14] selection:text-black bg-[#02040a]`}>
+    <div className={`min-h-screen flex flex-col text-slate-200 font-sans selection:bg-[#39FF14] selection:text-black bg-transparent relative z-10`}>
       
       {isShuttingDown && (
           <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
@@ -56,7 +56,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                      <i className="fas fa-power-off text-3xl text-cyber-danger"></i>
                  </div>
                  <h3 className="text-xl font-display font-bold text-white mb-2 uppercase tracking-widest text-shadow-red">¿Desconectar?</h3>
-                 <p className="text-cyber-danger/70 text-xs font-mono mb-8">Se cerrará el túnel seguro con el Núcleo.</p>
+                 <p className="text-cyber-danger/70 text-xs font-mono mb-8 uppercase">Se cerrará el enlace seguro con el Núcleo.</p>
                  <div className="flex gap-4 p-6 border-t border-white/10 bg-black/40">
                      <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold uppercase text-xs tracking-wider transition-colors">Cancelar</button>
                      <button onClick={confirmSignOut} className="flex-1 py-3 rounded-lg bg-cyber-danger text-black font-bold uppercase text-xs tracking-wider shadow-neon-red hover:bg-white transition-all">Apagar</button>
@@ -65,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       )}
 
-      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#050a14]/95 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#050a14]/90 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
         <div className="max-w-8xl mx-auto h-20 md:h-24 px-4 flex items-center justify-between gap-4">
             
             <div className="flex items-center gap-4 lg:gap-8">
@@ -76,13 +76,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         </AnimatedIconUltra>
                     </div>
                     <div className="hidden xs:block">
-                        <h1 className="text-xl md:text-2xl font-display font-black italic tracking-tighter text-white leading-none">TIEMPOS<span className="text-cyber-neon">PRO</span></h1>
-                        <p className="text-[7px] md:text-[8px] font-mono text-slate-500 uppercase tracking-[0.4em] font-bold">Node_v3.4_Master</p>
+                        <h1 className="text-xl md:text-2xl font-display font-black italic tracking-tighter text-white leading-none uppercase">TIEMPOS<span className="text-cyber-neon">PRO</span></h1>
+                        <p className="text-[7px] md:text-[8px] font-mono text-slate-500 uppercase tracking-[0.4em] font-black">Nodo_Maestro_v3.5</p>
                     </div>
                 </div>
 
                 <nav className="hidden lg:flex items-center gap-1.5">
-                    <NavItem icon="fa-chart-pie" label="Panel" active={isActive(ROUTES.DASHBOARD)} onClick={() => navigate(ROUTES.DASHBOARD)} color="cyber-neon" />
+                    <NavItem icon="fa-chart-pie" label="Consola" active={isActive(ROUTES.DASHBOARD)} onClick={() => navigate(ROUTES.DASHBOARD)} color="cyber-neon" />
                     {isAdmin && (
                         <>
                             <NavItem icon="fa-dna" label="Auditoría" active={isActive(ROUTES.AUDIT)} onClick={() => navigate(ROUTES.AUDIT)} color="cyber-purple" />
@@ -95,7 +95,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex-1 flex justify-center max-w-lg px-2 md:px-0">
                 <div className="relative w-full bg-black/60 border border-white/10 rounded-2xl md:rounded-[2rem] p-2 flex items-center justify-center shadow-inner overflow-hidden group/hud">
                     <div className="flex flex-col items-center justify-center">
-                        <span className="text-[7px] md:text-[9px] font-mono text-slate-500 uppercase tracking-[0.4em] font-black mb-1">Status Patrimonial</span>
+                        <span className="text-[7px] md:text-[9px] font-mono text-slate-500 uppercase tracking-[0.4em] font-black mb-1">Estado de Capital</span>
                         <div className="flex items-baseline gap-2 group/balance cursor-default">
                              <span className="text-sm md:text-lg font-display text-cyber-neon/40 font-black">₡</span>
                              <h2 className="text-xl md:text-3xl font-display font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
@@ -112,8 +112,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     isVendor ? 'border-cyber-purple/40 bg-cyber-purple/5 text-cyber-purple shadow-[0_0_15px_rgba(188,19,254,0.1)]' :
                     'border-cyber-blue/40 bg-cyber-blue/5 text-cyber-blue shadow-[0_0_15px_rgba(36,99,235,0.1)]'
                 }`}>
-                    <span className="text-[7px] font-mono uppercase font-black tracking-widest opacity-60">Status Nodo</span>
-                    <span className="text-[10px] font-display font-black uppercase tracking-wider">{isAdmin ? 'SUPER ADMIN' : user.role}</span>
+                    <span className="text-[7px] font-mono uppercase font-black tracking-widest opacity-60">Rango Nodo</span>
+                    <span className="text-[10px] font-display font-black uppercase tracking-wider">{isAdmin ? 'ADMIN MAESTRO' : user.role === 'Vendedor' ? 'VENDEDOR' : 'OPERADOR'}</span>
                 </div>
 
                 <button onClick={() => setShowLogoutConfirm(true)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl bg-cyber-danger/10 text-cyber-danger border border-cyber-danger/30 hover:bg-cyber-danger hover:text-black transition-all shadow-neon-red">
@@ -126,9 +126,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
         </div>
 
-        {/* MOBILE MENU: SOLID HIGH-CONTRAST THEMATIC NODES */}
+        {/* MENU MOBILE */}
         {isMobileMenuOpen && (
-           <div className="fixed inset-0 top-20 bg-black z-40 p-6 animate-in slide-in-from-top-4 duration-300 lg:hidden flex flex-col">
+           <div className="fixed inset-0 top-20 bg-black/95 backdrop-blur-xl z-40 p-6 animate-in slide-in-from-top-4 duration-300 lg:hidden flex flex-col">
                 <div className="space-y-4">
                     <MobileNavItem label="Panel Principal" icon="fa-chart-pie" color="cyan" onClick={() => { navigate(ROUTES.DASHBOARD); setIsMobileMenuOpen(false); }} active={isActive(ROUTES.DASHBOARD)} />
                     {isAdmin && (
@@ -142,17 +142,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="mt-auto mb-10 pt-8 border-t border-white/10 space-y-6">
                     <div className="bg-black p-8 rounded-[2.5rem] border-2 border-[#39FF14] text-center shadow-[0_0_25px_rgba(57,255,20,0.1)] relative overflow-hidden group">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-[#39FF14] opacity-40 animate-[scanline_2s_linear_infinite]"></div>
-                        <span className="text-[10px] font-mono text-slate-500 block mb-2 uppercase tracking-[0.4em] font-black">Patrimonio del Nodo</span>
+                        <span className="text-[10px] font-mono text-slate-500 block mb-2 uppercase tracking-[0.4em] font-black">Capital del Nodo</span>
                         <span className="text-4xl font-display font-black text-[#39FF14] drop-shadow-[0_0_15px_#39FF14]">{formatCurrency(user.balance_bigint)}</span>
                     </div>
 
                     <button onClick={() => { setShowLogoutConfirm(true); setIsMobileMenuOpen(false); }} className="w-full py-6 bg-cyber-danger text-black border-2 border-cyber-danger rounded-2xl font-black uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 shadow-[0_0_40px_rgba(255,0,60,0.2)] hover:bg-white transition-all active:scale-95">
                         <i className="fas fa-power-off text-lg"></i> CERRAR_SISTEMA
                     </button>
-                    
-                    <div className="text-center opacity-30">
-                        <p className="text-[8px] font-mono text-white uppercase tracking-[0.8em]">PHRONT_MAESTRO_THEMATIC_SOLID</p>
-                    </div>
                 </div>
            </div>
         )}
@@ -162,21 +158,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
       </main>
 
-      <footer className="fixed bottom-0 left-0 w-full h-10 bg-[#02040a] border-t border-white/5 z-50 flex items-center overflow-hidden">
+      <footer className="fixed bottom-0 left-0 w-full h-10 bg-[#02040a]/90 backdrop-blur-md border-t border-white/5 z-50 flex items-center overflow-hidden">
          <div className="px-4 bg-cyber-neon/10 h-full flex items-center border-r border-white/5 z-10">
              <div className="w-2 h-2 bg-cyber-success rounded-full animate-pulse mr-2 shadow-[0_0_8px_lime]"></div>
-             <span className="text-[10px] font-mono font-black text-cyber-neon tracking-widest">LIVE</span>
+             <span className="text-[10px] font-mono font-black text-cyber-neon tracking-widest uppercase">En Vivo</span>
          </div>
          <div className="flex-1 overflow-hidden relative">
              <div className="absolute whitespace-nowrap animate-scroll-ticker flex gap-12 items-center text-[10px] font-mono text-slate-500 uppercase tracking-widest top-2.5">
                  <span><i className="fas fa-server text-cyber-purple mr-2"></i> Latencia: 14ms</span>
-                 <span><i className="fas fa-shield-alt text-cyber-success mr-2"></i> Integridad: SHA-256 Verificada</span>
+                 <span><i className="fas fa-shield-alt text-cyber-success mr-2"></i> Integridad SHA-256 Verificada</span>
                  <span><i className="fas fa-user-shield text-cyber-blue mr-2"></i> Actor: {user.name}</span>
                  <span><i className="fas fa-satellite-dish text-yellow-500 mr-2"></i> Enlace: Directo Núcleo</span>
+                 <span><i className="fas fa-sync text-cyber-neon mr-2"></i> Sincronía_Estable</span>
              </div>
          </div>
          <div className="px-4 h-full flex items-center border-l border-white/5 bg-black z-10 text-[9px] text-slate-600 font-mono font-black italic">
-             PHRONT_MAESTRO_v3.4
+             PHRONT_MAESTRO_v3.5
          </div>
       </footer>
 

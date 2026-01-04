@@ -33,7 +33,7 @@ export interface AppUser {
   phone: string;
   role: UserRole;
   balance_bigint: number;
-  loyalty_points: number; // NUEVO: Para sistema de canje SIPR
+  loyalty_points: number; 
   currency: string;
   status: 'Active' | 'Suspended' | 'Deleted';
   pin_hash?: string;
@@ -46,10 +46,13 @@ export interface AppUser {
 
 export interface RiskAnalysisSIPR {
     number: string;
-    exposure_percent: number; // 0-100
+    exposure_percent: number; 
+    current_sold_bigint: number;
+    max_allowed_bigint: number;
     risk_status: 'CYAN' | 'AMBAR' | 'BLOOD_RED';
     is_blocked: boolean;
     is_recommended: boolean;
+    has_manual_limit: boolean;
     points_multiplier: number;
 }
 
@@ -78,9 +81,6 @@ export interface DrawResult {
     created_at: string;
 }
 
-/**
- * Payload for publishing a new draw result.
- */
 export interface DrawResultPayload {
     date: string;
     drawTime: DrawTime;
@@ -126,7 +126,8 @@ export enum AuditEventType {
   AI_OPERATION = 'AI_OPERATION',
   MAINTENANCE_OP = 'MAINTENANCE_OP',
   FINANCIAL_OP = 'FINANCIAL_OP',
-  SIPR_LOCKDOWN = 'SIPR_LOCKDOWN'
+  SIPR_LOCKDOWN = 'SIPR_LOCKDOWN',
+  RISK_LIMIT_UPDATE = 'RISK_LIMIT_UPDATE'
 }
 
 export interface AuditLog {
@@ -170,44 +171,27 @@ export interface TransactionResponse {
   tx_id: string;
 }
 
-export interface WeeklyDataStats {
-  year: number;
-  weekNumber: number;
-  recordCount: number;
-  startDate: string;
-  endDate: string;
-  sizeEstimate: string;
+export interface RiskLimitPayload {
+    drawTime: string;
+    number?: string; // If null, it's a global/collective limit for that draw
+    limit_bigint: number;
+    actor_id: string;
 }
 
-export interface RiskAnalysisReport {
-  draw: string;
-  timestamp: string;
-  stats: any[];
-}
-
+// Added missing maintenance interfaces
 export interface SystemSetting {
   key: string;
   value: any;
-  label?: string;
   description?: string;
+  category?: string;
 }
 
 export interface MasterCatalogItem {
   id: string;
   category: string;
-  value: string;
-  label: string;
-  meta?: any;
-}
-
-export interface RiskLimit {
-  number: string;
-  max_amount: number;
-  draw_type: string;
-}
-
-export interface RiskLimitStats {
-  number: string;
-  total_sold: number;
-  risk_percentage: number;
+  code: string;
+  name: string;
+  description?: string;
+  metadata?: any;
+  status: 'Active' | 'Deleted';
 }

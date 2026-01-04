@@ -1,7 +1,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants';
-import { AuditSeverity, AuditEventType, PurgeTarget, PurgeAnalysis, LotteryRegion, UserRole } from '../types';
+import { AuditSeverity, AuditEventType, LotteryRegion, UserRole, RiskAnalysisSIPR, DrawTime } from '../types';
 
 const isDemo = SUPABASE_URL.includes('your-project') || !SUPABASE_URL || SUPABASE_URL === 'https://demo.local';
 
@@ -15,7 +15,8 @@ const DB_STORAGE_KEYS = {
     LEDGER: 'tiempospro_db_ledger',
     USERS: 'tiempospro_db_users',
     SETTINGS: 'tiempospro_db_settings',
-    LIMITS: 'tiempospro_db_limits'
+    MANUAL_LIMITS: 'tiempospro_db_manual_limits',
+    GLOBAL_LIMITS: 'tiempospro_db_global_limits'
 };
 
 const load = (key: string, def: any) => {
@@ -43,47 +44,15 @@ const MOCK_ADMIN_PROFILE = {
   updated_at: new Date().toISOString()
 };
 
-const MOCK_VENDOR_PROFILE = {
-  id: 'app-user-002',
-  auth_uid: 'auth-uid-vendor',
-  email: 'vendedor@test.com',
-  name: 'Vendedor Prime',
-  role: UserRole.Vendedor,
-  cedula: '2-2222-2222',
-  phone: '+506 7777-7777',
-  balance_bigint: 50000000,
-  loyalty_points: 0,
-  currency: 'CRC',
-  status: 'Active',
-  issuer_id: 'app-user-001',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
-
-const MOCK_PLAYER_PROFILE = {
-  id: 'app-user-003',
-  auth_uid: 'auth-uid-player',
-  email: 'jugador@test.com',
-  name: 'Jugador Pro',
-  role: UserRole.Cliente,
-  cedula: '3-3333-3333',
-  phone: '+506 6666-6666',
-  balance_bigint: 1500000,
-  loyalty_points: 5400,
-  currency: 'CRC',
-  status: 'Active',
-  issuer_id: 'app-user-002',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
-
 // Carga inicial
-let DB_USERS = load(DB_STORAGE_KEYS.USERS, [MOCK_ADMIN_PROFILE, MOCK_VENDOR_PROFILE, MOCK_PLAYER_PROFILE]);
+let DB_USERS = load(DB_STORAGE_KEYS.USERS, [MOCK_ADMIN_PROFILE]);
 let DB_BETS = load(DB_STORAGE_KEYS.BETS, []);
 let DB_AUDIT = load(DB_STORAGE_KEYS.AUDIT, []);
 let DB_RESULTS = load(DB_STORAGE_KEYS.RESULTS, []);
 let DB_LEDGER = load(DB_STORAGE_KEYS.LEDGER, []);
 let DB_SETTINGS = load(DB_STORAGE_KEYS.SETTINGS, { multiplier_tiempos: 90, multiplier_reventados: 200, global_bank: 500000000 });
+let DB_MANUAL_LIMITS = load(DB_STORAGE_KEYS.MANUAL_LIMITS, {}); // { "DrawName:Number": bigint }
+let DB_GLOBAL_LIMITS = load(DB_STORAGE_KEYS.GLOBAL_LIMITS, {}); // { "DrawName": bigint }
 
 export const MockDB = {
     getUsers: () => DB_USERS,
@@ -111,62 +80,68 @@ export const MockDB = {
         save(DB_STORAGE_KEYS.SETTINGS, DB_SETTINGS);
         return DB_SETTINGS;
     },
-    getRiskAnalysisSIPR: (drawTime: string) => {
-        const bank = DB_SETTINGS.global_bank || 100000000;
-        const URC = bank * 0.10; 
-        const maxLiabilityPerNumber = URC / (DB_SETTINGS.multiplier_tiempos || 90);
+    saveManualLimit: (drawTime: string, num: string | null, limit: number) => {
+        if (num) {
+            const key = `${drawTime}:${num}`;
+            if (limit <= 0) {
+                delete DB_MANUAL_LIMITS[key];
+            } else {
+                DB_MANUAL_LIMITS[key] = limit;
+            }
+            save(DB_STORAGE_KEYS.MANUAL_LIMITS, DB_MANUAL_LIMITS);
+        } else {
+            if (limit <= 0) {
+                delete DB_GLOBAL_LIMITS[drawTime];
+            } else {
+                DB_GLOBAL_LIMITS[drawTime] = limit;
+            }
+            save(DB_STORAGE_KEYS.GLOBAL_LIMITS, DB_GLOBAL_LIMITS);
+        }
+    },
+    getRiskAnalysisSIPR: (drawTime: string): RiskAnalysisSIPR[] => {
+        const bank = DB_SETTINGS.global_bank || 500000000;
+        const defaultMaxLiability = bank * 0.10; 
+        const globalLimit = DB_GLOBAL_LIMITS[drawTime];
 
-        return Array.from({ length: 100 }, (_, i) => {
+        const allStats = Array.from({ length: 100 }, (_, i) => {
             const num = i.toString().padStart(2, '0');
             const totalBet = DB_BETS
                 .filter(b => b.numbers === num && b.draw_id === drawTime && b.status === 'PENDING')
                 .reduce((acc, curr) => acc + curr.amount_bigint, 0);
             
-            const exposure_percent = (totalBet / maxLiabilityPerNumber) * 100;
+            const manualIndiv = DB_MANUAL_LIMITS[`${drawTime}:${num}`];
+            const maxLiability = manualIndiv || globalLimit || defaultMaxLiability;
+
+            const exposure_percent = (totalBet / (maxLiability / (DB_SETTINGS.multiplier_tiempos || 90))) * 100;
+            
             let risk_status: 'CYAN' | 'AMBAR' | 'BLOOD_RED' = 'CYAN';
             if (exposure_percent > 75) risk_status = 'BLOOD_RED';
             else if (exposure_percent > 40) risk_status = 'AMBAR';
 
             return {
                 number: num,
-                exposure_percent,
+                exposure_percent: Math.min(100, exposure_percent),
+                current_sold_bigint: totalBet,
+                max_allowed_bigint: maxLiability / (DB_SETTINGS.multiplier_tiempos || 90),
                 risk_status,
                 is_blocked: exposure_percent >= 95,
-                is_recommended: exposure_percent < 30,
-                points_multiplier: exposure_percent < 30 ? 1 : 0
+                has_manual_limit: !!manualIndiv,
+                is_recommended: false, 
+                points_multiplier: 0   
             };
         });
-    },
 
-    executeRedeem: (userId: string) => {
-        const user = DB_USERS.find((u: any) => u.id === userId);
-        const threshold = 20000;
-        if (!user || (user.loyalty_points || 0) < threshold) {
-            return { error: `Puntos insuficientes (Mín: ${threshold.toLocaleString()})` };
-        }
-        
-        const canjes = Math.floor(user.loyalty_points / threshold);
-        const pointsToDeduct = canjes * threshold;
-        const rewardCents = canjes * 100 * 100; 
+        const coldTen = [...allStats]
+            .filter(s => !s.is_blocked)
+            .sort((a, b) => a.exposure_percent - b.exposure_percent)
+            .slice(0, 10)
+            .map(s => s.number);
 
-        const oldB = user.balance_bigint;
-        user.loyalty_points -= pointsToDeduct;
-        user.balance_bigint += rewardCents;
-        
-        const tx = {
-            id: `redeem-${Date.now()}`,
-            user_id: user.id,
-            amount_bigint: rewardCents,
-            balance_before: oldB,
-            balance_after: user.balance_bigint,
-            type: 'LOYALTY_REDEEM',
-            created_at: new Date().toISOString(),
-            meta: { points_spent: pointsToDeduct }
-        };
-        
-        MockDB.addTransaction(tx);
-        MockDB.saveUser(user);
-        return { data: { reward: rewardCents, new_points: user.loyalty_points } };
+        return allStats.map(s => ({
+            ...s,
+            is_recommended: coldTen.includes(s.number),
+            points_multiplier: coldTen.includes(s.number) ? 1 : 0
+        }));
     }
 };
 
@@ -187,9 +162,7 @@ if (isDemo) {
       signInWithPassword: async ({ email }: any) => {
         await new Promise(r => setTimeout(r, 600));
         let target = DB_USERS.find((u: any) => u.email === email);
-        
         if (!target) return { data: { user: null, session: null }, error: { message: 'Operador no registrado' } };
-
         const authUser = { id: target.auth_uid, email: target.email, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString() };
         const sessionData = { access_token: 'mock-jwt-token', user: authUser };
         save(MOCK_STORAGE_KEY, sessionData);
@@ -202,10 +175,7 @@ if (isDemo) {
         let currentFilterValue: any = null;
         const chain = {
             select: (c: string) => chain,
-            eq: (f: string, v: string) => {
-                currentFilterValue = v;
-                return chain;
-            },
+            eq: (f: string, v: string) => { currentFilterValue = v; return chain; },
             order: (f: string, { ascending }: any) => chain,
             limit: (n: number) => chain,
             single: async () => {
@@ -226,13 +196,6 @@ if (isDemo) {
             }
         };
         return chain;
-    },
-    rpc: (fn: string, params: any) => {
-        if (fn === 'update_market_rates') {
-            const updated = MockDB.updateSettings({ multiplier_tiempos: params.t, multiplier_reventados: params.r });
-            return { data: updated, error: null };
-        }
-        return { data: null, error: null };
     }
   } as any;
 } else {
