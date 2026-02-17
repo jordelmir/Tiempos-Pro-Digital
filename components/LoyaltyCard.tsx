@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { api } from '../services/edgeApi';
 import { formatCurrency } from '../constants';
-import AnimatedIconUltra from './ui/AnimatedIconUltra';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoyaltyCard() {
     const { user, fetchUser } = useAuthStore();
@@ -16,129 +16,81 @@ export default function LoyaltyCard() {
     const canRedeem = points >= threshold;
     const progress = Math.min((points / threshold) * 100, 100);
 
+    const theme = useMemo(() => {
+        return canRedeem 
+            ? { color: 'text-cyber-purple', hex: '#bc13fe', shadow: 'shadow-neon-purple', bg: 'bg-cyber-purple/20' }
+            : { color: 'text-cyber-blue', hex: '#00D1FF', shadow: 'shadow-neon-blue', bg: 'bg-cyber-blue/10' };
+    }, [canRedeem]);
+
     const handleRedeem = async () => {
         if (!canRedeem || loading) return;
         setLoading(true);
         try {
             const res = await api.redeemLoyaltyPoints(user.id);
-            if (res.error) {
-                alert(res.error);
-            } else {
+            if (!res.error) {
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                alert(`Protocolo de Liquidez: ₡100 acreditados correctamente.`);
                 await fetchUser(true);
             }
         } catch (e) {
-            alert("Error en protocolo de canje");
+            console.error("Redeem failed", e);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="relative group overflow-hidden bg-[#050a14]/95 border-[4px] border-white/10 rounded-[4rem] p-10 md:p-12 shadow-[0_0_100px_rgba(0,0,0,0.9)] transition-all hover:border-cyber-purple/40 animate-in slide-in-from-top-12 duration-1000">
-            
-            <div className={`absolute -top-40 -right-40 w-96 h-96 blur-[150px] rounded-full transition-colors duration-[2000ms] ${canRedeem ? 'bg-cyber-purple/30' : 'bg-cyber-blue/10 animate-pulse'}`}></div>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none"></div>
-
-            <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full group overflow-hidden"
+        >
+            <div className={`absolute -inset-4 ${canRedeem ? 'bg-cyber-purple/20' : 'bg-cyber-blue/20'} rounded-[2rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20`}></div>
+            {/* COMPACT HUD BOX */}
+            <div className={`relative bg-black/60 backdrop-blur-2xl border-2 rounded-[2rem] p-5 md:p-6 overflow-hidden shadow-2xl transition-all duration-700 z-10 ${canRedeem ? 'border-cyber-purple' : 'border-white/10'}`}>
                 
-                <div className="relative w-64 h-64 flex-shrink-0">
-                    <div className={`absolute inset-0 rounded-full border-4 border-dashed border-white/5 animate-[spin_20s_linear_infinite] opacity-40`}></div>
-                    <div className={`absolute inset-4 rounded-full border-[6px] border-double ${canRedeem ? 'border-cyber-purple shadow-neon-purple' : 'border-cyber-blue opacity-30'} animate-[spin_10s_linear_infinite_reverse]`}></div>
+                {/* Backglow subtle */}
+                <div className={`absolute -right-10 -top-10 w-40 h-40 blur-[80px] opacity-10 transition-colors duration-1000 ${canRedeem ? 'bg-cyber-purple' : 'bg-cyber-blue'}`}></div>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
                     
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.4em] mb-2">Core_Sync</div>
-                        <div className={`text-6xl font-mono font-black tracking-tighter ${canRedeem ? 'text-cyber-purple text-glow-purple' : 'text-cyber-blue'}`}>
-                            {Math.floor(progress)}%
-                        </div>
-                        <div className="w-20 h-1 bg-white/10 rounded-full mt-4 overflow-hidden">
-                            <div className={`h-full transition-all duration-1000 ${canRedeem ? 'bg-cyber-purple shadow-neon-purple' : 'bg-cyber-blue'}`} style={{ width: `${progress}%` }}></div>
-                        </div>
-                    </div>
-
-                    <div className={`absolute inset-8 rounded-full blur-3xl opacity-20 animate-pulse ${canRedeem ? 'bg-cyber-purple' : 'bg-cyber-blue'}`}></div>
-                </div>
-
-                <div className="flex-1 space-y-8 text-center lg:text-left">
-                    <div className="flex flex-col lg:flex-row lg:items-end gap-6 border-b border-white/10 pb-8">
-                        <div className="w-20 h-20 rounded-3xl bg-black border-2 border-cyber-purple flex items-center justify-center shadow-neon-purple mx-auto lg:mx-0 group-hover:scale-110 transition-transform">
-                            <AnimatedIconUltra profile={{ animation: 'spin3d', theme: 'neon', speed: 4 }}>
-                                <i className="fas fa-fingerprint text-cyber-purple text-4xl"></i>
-                            </AnimatedIconUltra>
-                        </div>
-                        <div>
-                            <h3 className="text-xs font-mono font-black text-cyber-purple uppercase tracking-[0.6em] mb-2">OPERADOR_ACTIVO</h3>
-                            <p className="text-4xl md:text-5xl font-display font-black text-slate-100 uppercase tracking-tighter text-shadow-sm">
-                                {user.name}
-                            </p>
+                    {/* MINI REACTOR CORE */}
+                    <div className="relative w-24 h-24 flex-shrink-0">
+                        <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                            <motion.circle 
+                                cx="50" cy="50" r="42" fill="none" 
+                                stroke={theme.hex} 
+                                strokeWidth="8" 
+                                strokeDasharray="263.89" 
+                                strokeDashoffset={263.89 - (263.89 * progress) / 100}
+                                strokeLinecap="round"
+                                className="drop-shadow-[0_0_8px_currentColor]"
+                                transition={{ duration: 1.5, ease: "easeOut" }}
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className={`text-xl font-display font-black tracking-tighter ${theme.color}`}>
+                                {Math.floor(progress)}%
+                            </span>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div>
-                            <span className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.5em] font-black block mb-4">Patrimonio Global</span>
-                            <div className="flex items-baseline gap-4 justify-center lg:justify-start">
-                                <span className="text-3xl font-display text-cyber-neon font-black drop-shadow-sm">₡</span>
-                                <span className="text-6xl font-display font-black text-slate-100 tracking-tighter text-shadow-sm">
-                                    {formatCurrency(user.balance_bigint).replace('₡', '').trim()}
-                                </span>
+                    {/* IDENTITY & STATS */}
+                    <div className="flex-1 text-center sm:text-left space-y-1 min-w-0">
+                        <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${canRedeem ? 'bg-cyber-purple animate-ping' : 'bg-cyber-blue'}`}></div>
+                            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.4em] font-black">Protocolo Lealtad</span>
+                        </div>
+                        <h3 className="text-2xl font-display font-black text-white uppercase tracking-tighter truncate">
+                            {user.name.split(' ')[0]}<span className={theme.color}>_ID</span>
+                        </h3>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[8px] text-slate-500 font-bold uppercase">Poder</span>
+                                <span className={`text-sm font-mono font-black ${canRedeem ? 'text-cyber-purple' : 'text-white'}`}>{points.toLocaleString()}</span>
                             </div>
-                        </div>
-                        <div>
-                            <span className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.5em] font-black block mb-4">SIPR_ACCUMULATOR</span>
-                            <div className="flex items-center gap-5 justify-center lg:justify-start">
-                                <i className="fas fa-atom text-cyber-purple animate-spin-slow text-3xl"></i>
-                                <span className="text-6xl font-mono font-black text-cyber-purple text-glow-purple drop-shadow-sm">
-                                    {points.toLocaleString()}
-                                </span>
+                            <div className="w-px h-3 bg-white/10 hidden xs:block"></div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[8px] text-slate-500 font-bold uppercase">Meta</span>
+                                <span className="text-[10px] font-mono font-bold text-white/40">20,000PTS</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="w-full lg:w-80 space-y-6">
-                    <div className="bg-black/40 border-2 border-white/5 rounded-[2.5rem] p-8 text-center backdrop-blur-md">
-                        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-6 font-black">Protocolo de Liquidez</div>
-                        
-                        <button 
-                            onClick={handleRedeem}
-                            disabled={!canRedeem || loading}
-                            className={`w-full py-8 rounded-[2rem] font-display font-black text-base uppercase tracking-[0.5em] transition-all relative overflow-hidden group/btn
-                                ${canRedeem 
-                                    ? 'bg-cyber-purple text-black shadow-[0_0_60px_rgba(188,19,254,0.6)] hover:bg-white hover:scale-[1.05] active:scale-95 cursor-pointer' 
-                                    : 'bg-white/5 text-slate-800 border-2 border-white/5 cursor-not-allowed'}
-                            `}
-                        >
-                            {canRedeem && (
-                                <div className="absolute inset-0 bg-white/50 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-[1000ms] skew-x-12"></div>
-                            )}
-                            
-                            <div className="relative z-10 flex flex-col items-center gap-3">
-                                {loading ? (
-                                    <i className="fas fa-sync fa-spin text-3xl"></i>
-                                ) : (
-                                    <>
-                                        <i className={`fas ${canRedeem ? 'fa-bolt animate-bounce' : 'fa-lock'} text-3xl`}></i>
-                                        <span>{canRedeem ? 'LIQUIDAR' : 'BLOQUEADO'}</span>
-                                    </>
-                                )}
-                            </div>
-                        </button>
-                        
-                        <div className="mt-6 flex items-center justify-center gap-4 text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">
-                            <span>{points.toLocaleString()}</span>
-                            <div className="h-px w-12 bg-white/10"></div>
-                            <span>20K_GOAL</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <style>{`
-                .text-glow-purple { text-shadow: 0 0 20px rgba(188, 19, 254, 0.8), 0 0 40px rgba(188, 19, 254, 0.4); }
-                .text-glow-cyan { text-shadow: 0 0 20px rgba(0, 240, 255, 0.8), 0 0 40px rgba(0, 240, 255, 0.4); }
-            `}</style>
-        </div>
-    );
-}

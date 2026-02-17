@@ -83,41 +83,46 @@ const MetricRow = ({ title, data, theme }: { title: string, data: { in: number, 
     <motion.div 
         initial={{ opacity: 0, y: 10 }} 
         whileInView={{ opacity: 1, y: 0 }} 
-        className={`space-y-6 p-6 md:p-8 rounded-[2.5rem] border-2 bg-black/40 backdrop-blur-xl transition-all duration-700 hover:scale-[1.01] ${
+        className="relative group"
+    >
+        {/* ALIVE GLOW: METRIC ROW */}
+        <div className={`absolute -inset-4 rounded-[2.5rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20 ${theme === 'emerald' ? 'bg-cyber-emerald/20' : 'bg-cyber-blue/20'}`}></div>
+        
+        <div className={`relative space-y-6 p-6 md:p-8 rounded-[2.5rem] border-2 bg-black/40 backdrop-blur-xl transition-all duration-700 hover:scale-[1.01] z-10 ${
             theme === 'emerald' 
             ? 'border-cyber-emerald shadow-neon-emerald' 
             : 'border-cyber-blue shadow-neon-blue'
-        }`}
-    >
-        <div className="flex items-center gap-3 px-2">
-            <div className={`w-1.5 h-6 rounded-full animate-pulse ${theme === 'emerald' ? 'bg-cyber-emerald shadow-neon-emerald' : 'bg-cyber-blue shadow-neon-blue'}`}></div>
-            <h4 className="text-sm font-display font-black text-white uppercase tracking-[0.2em]">{title}</h4>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricCard 
-                label="Inyecciones (+)" 
-                val={data.in} 
-                border="border-cyber-emerald" 
-                shadow="shadow-neon-emerald" 
-                icon="fa-arrow-trend-up" 
-                color="text-cyber-emerald" 
-            />
-            <MetricCard 
-                label="Retiros (-)" 
-                val={data.out} 
-                border="border-cyber-danger" 
-                shadow="shadow-neon-red" 
-                icon="fa-arrow-trend-down" 
-                color="text-cyber-danger" 
-            />
-            <MetricCard 
-                label="Delta Neto" 
-                val={data.net} 
-                border={data.net >= 0 ? "border-cyber-success" : "border-cyber-danger"} 
-                shadow={data.net >= 0 ? "shadow-neon-green" : "shadow-neon-red"} 
-                icon={data.net >= 0 ? "fa-chart-line" : "fa-triangle-exclamation"} 
-                color={data.net >= 0 ? "text-cyber-success" : "text-cyber-danger"} 
-            />
+        }`}>
+            <div className="flex items-center gap-3 px-2">
+                <div className={`w-1.5 h-6 rounded-full animate-pulse ${theme === 'emerald' ? 'bg-cyber-emerald shadow-neon-emerald' : 'bg-cyber-blue shadow-neon-blue'}`}></div>
+                <h4 className="text-sm font-display font-black text-white uppercase tracking-[0.2em]">{title}</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <MetricCard 
+                    label="Inyecciones (+)" 
+                    val={data.in} 
+                    border="border-cyber-emerald" 
+                    shadow="shadow-neon-emerald" 
+                    icon="fa-arrow-trend-up" 
+                    color="text-cyber-emerald" 
+                />
+                <MetricCard 
+                    label="Retiros (-)" 
+                    val={data.out} 
+                    border="border-cyber-danger" 
+                    shadow="shadow-neon-red" 
+                    icon="fa-arrow-trend-down" 
+                    color="text-cyber-danger" 
+                />
+                <MetricCard 
+                    label="Delta Neto" 
+                    val={data.net} 
+                    border={data.net >= 0 ? "border-cyber-success" : "border-cyber-danger"} 
+                    shadow={data.net >= 0 ? "shadow-neon-green" : "shadow-neon-red"} 
+                    icon={data.net >= 0 ? "fa-chart-line" : "fa-triangle-exclamation"} 
+                    color={data.net >= 0 ? "text-cyber-success" : "text-cyber-danger"} 
+                />
+            </div>
         </div>
     </motion.div>
 );
@@ -170,23 +175,28 @@ export default function LedgerView() {
     <div className="p-4 md:p-8 space-y-16 animate-in fade-in duration-700">
       
       {/* HEADER COMMAND HUD */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b-2 border-white/10 pb-10 gap-8">
-        <div>
-            <div className="flex items-center gap-3 mb-2">
-                <i className="fas fa-microchip text-cyber-emerald animate-spin-slow"></i>
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.5em] font-black">Fiscal Intelligence Unit v5.0</span>
+      <div className="relative group">
+        {/* ALIVE GLOW: HEADER */}
+        <div className="absolute -inset-4 bg-cyber-emerald/20 rounded-[2.5rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20"></div>
+        
+        <header className="relative flex flex-col lg:flex-row justify-between items-start lg:items-end border-b-2 border-white/10 pb-10 gap-8 z-10 bg-transparent">
+            <div>
+                <div className="flex items-center gap-3 mb-2">
+                    <i className="fas fa-microchip text-cyber-emerald animate-spin-slow"></i>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.5em] font-black">Fiscal Intelligence Unit v5.0</span>
+                </div>
+                <h2 className="text-5xl md:text-7xl font-display font-black text-white italic tracking-tighter uppercase leading-none">
+                    INTELIGENCIA <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 text-glow-emerald">FINANCIERA</span>
+                </h2>
             </div>
-            <h2 className="text-5xl md:text-7xl font-display font-black text-white italic tracking-tighter uppercase leading-none">
-                INTELIGENCIA <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 text-glow-emerald">FINANCIERA</span>
-            </h2>
-        </div>
-        <div className="bg-black/40 p-8 rounded-[2.5rem] border-2 border-cyber-emerald shadow-neon-emerald backdrop-blur-2xl">
-            <div className="text-[10px] font-mono text-cyber-emerald uppercase font-black tracking-widest mb-2">Reserva Atómica en Bóveda</div>
-            <div className="text-4xl md:text-5xl font-mono font-black text-white text-glow-emerald">
-                {txs.length > 0 ? formatCurrency(txs[0].balance_after) : 'CRC 0'}
+            <div className="bg-black/40 p-8 rounded-[2.5rem] border-2 border-cyber-emerald shadow-neon-emerald backdrop-blur-2xl">
+                <div className="text-[10px] font-mono text-cyber-emerald uppercase font-black tracking-widest mb-2">Reserva Atómica en Bóveda</div>
+                <div className="text-4xl md:text-5xl font-mono font-black text-white text-glow-emerald">
+                    {txs.length > 0 ? formatCurrency(txs[0].balance_after) : 'CRC 0'}
+                </div>
             </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* MATRIX KPIS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
@@ -198,8 +208,11 @@ export default function LedgerView() {
 
       {/* HISTOGRAMA INTERACTIVO 12 MESES */}
       <section className="relative group">
+        {/* ALIVE GLOW: HISTOGRAM */}
+        <div className="absolute -inset-4 bg-cyber-neon/20 rounded-[3.5rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20"></div>
         <div className="absolute -inset-1 bg-gradient-to-r from-cyber-emerald via-cyber-blue to-cyber-neon rounded-[3.5rem] opacity-20 blur-xl animate-pulse"></div>
-        <div className="relative bg-[#050a14]/80 border-2 border-cyber-neon shadow-neon-cyan rounded-[3.5rem] p-10 backdrop-blur-3xl overflow-hidden min-h-[600px] flex flex-col">
+        
+        <div className="relative bg-[#050a14]/80 border-2 border-cyber-neon shadow-neon-cyan rounded-[3.5rem] p-10 backdrop-blur-3xl overflow-hidden min-h-[600px] flex flex-col z-10">
             
             <div className="flex flex-col md:flex-row justify-between items-start mb-12 gap-8">
                 <div>
@@ -313,7 +326,8 @@ export default function LedgerView() {
 
       {/* TRANSACTION TABLE BLOCK */}
       <div className="relative group/ledger">
-        {/* Ambient Backlight for the Ledger Chassis */}
+        {/* ALIVE GLOW: LEDGER TABLE */}
+        <div className="absolute -inset-4 bg-cyber-blue/20 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20"></div>
         <div className="absolute -inset-1 bg-cyber-blue opacity-10 blur-2xl rounded-[3rem] animate-pulse pointer-events-none"></div>
         
         <div className="relative bg-[#050a14] border-2 border-cyber-blue rounded-[3rem] overflow-hidden shadow-neon-blue z-10 transition-all duration-500">

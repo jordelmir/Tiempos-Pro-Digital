@@ -47,18 +47,18 @@ export default function AdminResultControl({ isOpen, onClose, onPublishSuccess, 
           case DrawTime.MEDIODIA: return {
               name: 'solar', color: 'text-cyber-solar', border: 'border-cyber-solar', bgHex: '#0c0400', 
               matrixHex: '#ff5f00', shadow: 'shadow-neon-solar', glow: 'bg-cyber-solar', ring: 'ring-cyber-solar/30',
-              textGlow: 'drop-shadow-[0_0_15px_#ff5f00]'
+              textGlow: 'drop-shadow-[0_0_15px_#ff5f00]', glowClass: 'bg-cyber-solar/20'
           };
           case DrawTime.TARDE: return {
               name: 'vapor', color: 'text-cyber-vapor', border: 'border-cyber-vapor', bgHex: '#05020c', 
               matrixHex: '#7c3aed', shadow: 'shadow-neon-vapor', glow: 'bg-cyber-vapor', ring: 'ring-cyber-vapor/30',
-              textGlow: 'drop-shadow-[0_0_15px_#7c3aed]'
+              textGlow: 'drop-shadow-[0_0_15px_#7c3aed]', glowClass: 'bg-cyber-vapor/20'
           };
           case DrawTime.NOCHE: 
           default: return {
               name: 'abyss', color: 'text-blue-400', border: 'border-blue-600', bgHex: '#02040a', 
               matrixHex: '#2563eb', shadow: 'shadow-neon-blue', glow: 'bg-cyber-blue', ring: 'ring-blue-600/30',
-              textGlow: 'drop-shadow-[0_0_15px_#2563eb]'
+              textGlow: 'drop-shadow-[0_0_15px_#2563eb]', glowClass: 'bg-cyber-blue/20'
           };
       }
   }, [selectedDraw]);
@@ -143,6 +143,8 @@ export default function AdminResultControl({ isOpen, onClose, onPublishSuccess, 
         </div>
 
         <div className={`relative z-10 w-full max-w-7xl h-auto md:my-auto bg-black/70 backdrop-blur-3xl md:rounded-[3rem] border-t md:border-4 ${theme.border} ${theme.shadow} flex flex-col md:flex-row overflow-hidden transition-all duration-700`}>
+            {/* ALIVE NEON GLOW */}
+            <div className={`absolute -inset-4 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20 pointer-events-none ${theme.glowClass}`}></div>
             
             {/* BOTÓN CERRAR MOBILE & DESKTOP */}
             <button 

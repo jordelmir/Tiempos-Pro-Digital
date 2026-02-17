@@ -66,6 +66,9 @@ export default function VendorPaymentModal({ isOpen, onClose, targetUser, onSucc
   return createPortal(
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto custom-scrollbar">
         <div className="relative max-w-md w-full mx-4 my-8 flex flex-col min-h-[auto]">
+            {/* ALIVE NEON GLOW */}
+            <div className="absolute -inset-4 bg-cyber-purple/20 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000"></div>
+            
             <div className="absolute -inset-1 bg-cyber-purple rounded-2xl opacity-20 blur-xl animate-[pulse_4s_ease-in-out_infinite] transition-all duration-1000 fixed-backlight"></div>
             <div className="bg-[#0a0a0f] border border-cyber-purple/40 rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(188,19,254,0.2)] relative z-10 group flex flex-col w-full">
                 <div className="bg-[#1a1a24]/95 backdrop-blur-xl p-6 border-b border-cyber-purple/20 flex justify-between items-start relative overflow-hidden sticky top-0 z-50 shrink-0">

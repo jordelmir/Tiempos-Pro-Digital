@@ -66,9 +66,10 @@ export default function PersonalBetsPanel({ theme, refreshTrigger }: PersonalBet
             />
 
             {/* GLOBAL PANEL BACKLIGHT */}
+            <div className={`absolute -inset-4 ${theme.glow} rounded-[2rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20`}></div>
             <div className={`absolute -inset-1 ${theme.glow} rounded-2xl opacity-10 blur-xl animate-pulse transition-all duration-1000`}></div>
             
-            <div className="relative bg-cyber-panel/40 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col h-full overflow-hidden transition-colors duration-500 hover:border-white/20">
+            <div className="relative bg-cyber-panel/40 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col h-full overflow-hidden transition-colors duration-500 hover:border-white/20 z-10">
                 
                 {/* HEADER & TABS */}
                 <div className="p-6 border-b border-white/5 bg-black/20 flex-shrink-0 relative z-10">

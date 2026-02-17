@@ -158,41 +158,47 @@ export default function AuditView() {
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyber-purple/10 via-[#02040a] to-[#02040a] z-0"></div>
 
       {/* Header - LIVING PHOSPHORESCENT */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b-2 border-cyber-purple relative pb-6 shadow-[0_0_30px_rgba(188,19,254,0.2)] z-10">
-        <div className="absolute bottom-0 left-0 w-1/3 h-0.5 bg-cyber-purple shadow-[0_0_20px_#bc13fe] animate-[pulse_3s_infinite]"></div>
-        <div>
-          <h2 className="text-3xl md:text-4xl font-display font-black text-white uppercase tracking-tighter mb-2 drop-shadow-lg flex items-center gap-3">
-            <i className="fas fa-fingerprint text-cyber-purple animate-pulse drop-shadow-[0_0_15px_rgba(188,19,254,0.8)]"></i>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-300 to-indigo-400 text-glow-purple" style={{ textShadow: '0 0 30px rgba(188,19,254,0.5)' }}>
-                Bitácora Forense
-            </span>
-          </h2>
-          <p className="text-cyber-purple/80 text-xs font-mono uppercase tracking-[0.3em] font-bold flex items-center gap-2 pl-1">
-             <span className="w-2 h-2 bg-cyber-purple rounded-full animate-ping"></span> Trazabilidad Inmutable Activa
-          </p>
-        </div>
+      <div className="relative group">
+        {/* ALIVE GLOW: HEADER */}
+        <div className="absolute -inset-4 bg-cyber-purple/20 rounded-[2rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20"></div>
         
-        <div className="flex gap-3">
-            <button 
-                onClick={exportLogs}
-                className="bg-[#050a14] border-2 border-cyber-purple/50 hover:border-cyber-purple text-cyber-purple hover:text-white px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(188,19,254,0.1)] hover:shadow-[0_0_30px_rgba(188,19,254,0.6)] group hover:-translate-y-0.5"
-            >
-                <i className="fas fa-file-csv mr-2 group-hover:animate-bounce"></i> Exportar
-            </button>
-            <button 
-                onClick={fetchLogs} 
-                className="bg-[#050a14] border-2 border-cyber-neon/50 hover:border-cyber-neon text-cyber-neon hover:text-black hover:bg-cyber-neon px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,240,255,0.1)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] hover:-translate-y-0.5"
-            >
-                <i className="fas fa-sync-alt mr-2"></i> Actualizar
-            </button>
+        <div className="relative flex flex-col md:flex-row justify-between items-end gap-4 border-b-2 border-cyber-purple pb-6 shadow-[0_0_30px_rgba(188,19,254,0.2)] z-10 bg-transparent">
+            <div className="absolute bottom-0 left-0 w-1/3 h-0.5 bg-cyber-purple shadow-[0_0_20px_#bc13fe] animate-[pulse_3s_infinite]"></div>
+            <div>
+            <h2 className="text-3xl md:text-4xl font-display font-black text-white uppercase tracking-tighter mb-2 drop-shadow-lg flex items-center gap-3">
+                <i className="fas fa-fingerprint text-cyber-purple animate-pulse drop-shadow-[0_0_15px_rgba(188,19,254,0.8)]"></i>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-300 to-indigo-400 text-glow-purple" style={{ textShadow: '0 0 30px rgba(188,19,254,0.5)' }}>
+                    Bitácora Forense
+                </span>
+            </h2>
+            <p className="text-cyber-purple/80 text-xs font-mono uppercase tracking-[0.3em] font-bold flex items-center gap-2 pl-1">
+                <span className="w-2 h-2 bg-cyber-purple rounded-full animate-ping"></span> Trazabilidad Inmutable Activa
+            </p>
+            </div>
+            
+            <div className="flex gap-3">
+                <button 
+                    onClick={exportLogs}
+                    className="bg-[#050a14] border-2 border-cyber-purple/50 hover:border-cyber-purple text-cyber-purple hover:text-white px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(188,19,254,0.1)] hover:shadow-[0_0_30px_rgba(188,19,254,0.6)] group hover:-translate-y-0.5"
+                >
+                    <i className="fas fa-file-csv mr-2 group-hover:animate-bounce"></i> Exportar
+                </button>
+                <button 
+                    onClick={fetchLogs} 
+                    className="bg-[#050a14] border-2 border-cyber-neon/50 hover:border-cyber-neon text-cyber-neon hover:text-black hover:bg-cyber-neon px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,240,255,0.1)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] hover:-translate-y-0.5"
+                >
+                    <i className="fas fa-sync-alt mr-2"></i> Actualizar
+                </button>
+            </div>
         </div>
       </div>
 
       {/* Controls - VOLUMETRIC CORE CONTAINER */}
       <div className="relative group z-10">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyber-purple via-fuchsia-600 to-indigo-600 rounded-2xl opacity-20 blur-xl animate-pulse transition-all duration-1000 group-hover:opacity-40"></div>
+          {/* ALIVE GLOW: CONTROLS */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-cyber-purple via-fuchsia-600 to-indigo-600 rounded-[2rem] opacity-20 blur-3xl animate-pulse transition-all duration-1000"></div>
           
-          <div className="relative bg-[#050a14] border-2 border-cyber-purple rounded-2xl p-6 shadow-[0_0_40px_rgba(188,19,254,0.15)] flex flex-col md:flex-row gap-6 items-center overflow-hidden">
+          <div className="relative bg-[#050a14] border-2 border-cyber-purple rounded-2xl p-6 shadow-[0_0_40px_rgba(188,19,254,0.15)] flex flex-col md:flex-row gap-6 items-center overflow-hidden z-10">
               {/* Internal Glow Texture */}
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
               <div className="absolute top-0 left-0 w-full h-1 bg-cyber-purple shadow-[0_0_20px_#bc13fe] animate-[scanline_4s_linear_infinite] opacity-60"></div>

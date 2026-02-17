@@ -30,6 +30,9 @@ export default function TicketViewModal({ isOpen, onClose, bet }: TicketViewModa
         <div className="absolute inset-0 z-0" onClick={onClose}></div>
 
         <div className="relative max-w-sm w-full perspective-1000 z-10 my-auto">
+            {/* ALIVE NEON GLOW */}
+            <div className={`absolute -inset-4 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20 ${isWin ? 'bg-cyber-success' : 'bg-white'}`}></div>
+            
             <div 
                 className="bg-[#e2e8f0] text-slate-900 font-mono text-xs relative shadow-[0_0_80px_rgba(0,0,0,0.9)] overflow-hidden pb-4 transform rotate-1 animate-in zoom-in-95 duration-500 max-h-[90vh] flex flex-col"
                 style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}

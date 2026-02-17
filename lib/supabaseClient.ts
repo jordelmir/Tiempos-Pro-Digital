@@ -1,7 +1,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants';
-import { AuditSeverity, AuditEventType, LotteryRegion, UserRole, RiskAnalysisSIPR, DrawTime } from '../types';
+import { AuditSeverity, AuditEventType, LotteryRegion, UserRole, RiskAnalysisSIPR, DrawTime, PurgeTarget, PurgeAnalysis } from '../types';
 
 const isDemo = SUPABASE_URL.includes('your-project') || !SUPABASE_URL || SUPABASE_URL === 'https://demo.local';
 
@@ -24,6 +24,13 @@ const load = (key: string, def: any) => {
 };
 const save = (key: string, val: any) => {
     try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error("Quota Exceeded"); }
+};
+
+// Generar datos antiguos para probar la purga
+const generateOldData = () => {
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 45); // 45 días atrás
+    return oldDate.toISOString();
 };
 
 // --- DEFINICIÓN DE PERFILES MAESTROS ---
@@ -51,8 +58,16 @@ let DB_AUDIT = load(DB_STORAGE_KEYS.AUDIT, []);
 let DB_RESULTS = load(DB_STORAGE_KEYS.RESULTS, []);
 let DB_LEDGER = load(DB_STORAGE_KEYS.LEDGER, []);
 let DB_SETTINGS = load(DB_STORAGE_KEYS.SETTINGS, { multiplier_tiempos: 90, multiplier_reventados: 200, global_bank: 500000000 });
-let DB_MANUAL_LIMITS = load(DB_STORAGE_KEYS.MANUAL_LIMITS, {}); // { "DrawName:Number": bigint }
-let DB_GLOBAL_LIMITS = load(DB_STORAGE_KEYS.GLOBAL_LIMITS, {}); // { "DrawName": bigint }
+let DB_MANUAL_LIMITS = load(DB_STORAGE_KEYS.MANUAL_LIMITS, {});
+let DB_GLOBAL_LIMITS = load(DB_STORAGE_KEYS.GLOBAL_LIMITS, {});
+
+// Inyectar algunos datos viejos si las tablas están vacías para demo
+if (DB_BETS.length === 0) {
+    DB_BETS = Array.from({length: 20}).map((_, i) => ({
+        id: `old-bet-${i}`, ticket_code: `OLD-${i}`, user_id: 'app-user-001', amount_bigint: 100000, 
+        numbers: '00', mode: '90x', status: 'LOST', created_at: generateOldData()
+    }));
+}
 
 export const MockDB = {
     getUsers: () => DB_USERS,
@@ -83,21 +98,74 @@ export const MockDB = {
     saveManualLimit: (drawTime: string, num: string | null, limit: number) => {
         if (num) {
             const key = `${drawTime}:${num}`;
-            if (limit <= 0) {
-                delete DB_MANUAL_LIMITS[key];
-            } else {
-                DB_MANUAL_LIMITS[key] = limit;
-            }
+            if (limit <= 0) { delete DB_MANUAL_LIMITS[key]; } else { DB_MANUAL_LIMITS[key] = limit; }
             save(DB_STORAGE_KEYS.MANUAL_LIMITS, DB_MANUAL_LIMITS);
         } else {
-            if (limit <= 0) {
-                delete DB_GLOBAL_LIMITS[drawTime];
-            } else {
-                DB_GLOBAL_LIMITS[drawTime] = limit;
-            }
+            if (limit <= 0) { delete DB_GLOBAL_LIMITS[drawTime]; } else { DB_GLOBAL_LIMITS[drawTime] = limit; }
             save(DB_STORAGE_KEYS.GLOBAL_LIMITS, DB_GLOBAL_LIMITS);
         }
     },
+    
+    // --- MÓDULO DE MANTENIMIENTO ---
+    analyzePurge: (target: PurgeTarget, days: number): PurgeAnalysis => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        const cutoffTime = cutoff.getTime();
+
+        let list: any[] = [];
+        let desc = "";
+        
+        switch(target) {
+            case 'BETS_HISTORY': list = DB_BETS; desc = "Registros de apuestas finalizadas que exceden el periodo de auditoría legal."; break;
+            case 'AUDIT_LOGS': list = DB_AUDIT; desc = "Registros técnicos de eventos de sistema y trazas de navegación."; break;
+            case 'RESULTS_HISTORY': list = DB_RESULTS; desc = "Historial de números ganadores almacenados en el búfer de resultados rápida."; break;
+            case 'LEDGER_OLD': list = DB_LEDGER; desc = "Transacciones contables históricas. Los balances finales no se ven afectados."; break;
+            default: list = [];
+        }
+
+        const count = list.filter(item => new Date(item.created_at || item.timestamp).getTime() < cutoffTime).length;
+        
+        return {
+            target,
+            cutoffDate: cutoff.toISOString(),
+            recordCount: count,
+            estimatedSizeKB: Math.round(count * 0.85), // Promedio de 0.85KB por registro
+            riskLevel: days < 15 ? 'HIGH' : count > 500 ? 'MEDIUM' : 'LOW',
+            canProceed: true,
+            description: desc || "Análisis de integridad completado."
+        };
+    },
+
+    executePurge: (target: PurgeTarget, days: number): number => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        const cutoffTime = cutoff.getTime();
+        let initialCount = 0;
+
+        if (target === 'BETS_HISTORY') {
+            initialCount = DB_BETS.length;
+            DB_BETS = DB_BETS.filter(item => new Date(item.created_at).getTime() >= cutoffTime);
+            save(DB_STORAGE_KEYS.BETS, DB_BETS);
+        } else if (target === 'AUDIT_LOGS') {
+            initialCount = DB_AUDIT.length;
+            DB_AUDIT = DB_AUDIT.filter(item => new Date(item.timestamp).getTime() >= cutoffTime);
+            save(DB_STORAGE_KEYS.AUDIT, DB_AUDIT);
+        } else if (target === 'RESULTS_HISTORY') {
+            initialCount = DB_RESULTS.length;
+            DB_RESULTS = DB_RESULTS.filter(item => new Date(item.created_at).getTime() >= cutoffTime);
+            save(DB_STORAGE_KEYS.RESULTS, DB_RESULTS);
+        } else if (target === 'LEDGER_OLD') {
+            initialCount = DB_LEDGER.length;
+            DB_LEDGER = DB_LEDGER.filter(item => new Date(item.created_at).getTime() >= cutoffTime);
+            save(DB_STORAGE_KEYS.LEDGER, DB_LEDGER);
+        }
+
+        return initialCount - (target === 'BETS_HISTORY' ? DB_BETS.length : 
+                              target === 'AUDIT_LOGS' ? DB_AUDIT.length : 
+                              target === 'RESULTS_HISTORY' ? DB_RESULTS.length : 
+                              DB_LEDGER.length);
+    },
+
     getRiskAnalysisSIPR: (drawTime: string): RiskAnalysisSIPR[] => {
         const bank = DB_SETTINGS.global_bank || 500000000;
         const defaultMaxLiability = bank * 0.10; 
@@ -192,7 +260,7 @@ if (isDemo) {
                 else if (table === 'audit_trail') data = DB_AUDIT;
                 else if (table === 'bets') data = DB_BETS;
                 else if (table === 'draw_results') data = DB_RESULTS;
-                callback({ data: data.slice(0, 500), error: null });
+                callback({ data: [...data], error: null });
             }
         };
         return chain;

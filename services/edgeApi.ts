@@ -1,5 +1,4 @@
 
-
 import { supabase, MockDB } from '../lib/supabaseClient';
 import { ApiResponse, AppUser, TransactionResponse, DrawResultPayload, DrawResult, Bet, AuditEventType, PurgeTarget, PurgeAnalysis, RiskAnalysisSIPR, RiskLimitPayload, SystemSetting, MasterCatalogItem } from '../types';
 
@@ -20,7 +19,17 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             MockDB.saveManualLimit(body.drawTime, body.number, body.limit_bigint);
             return { data: { success: true } as any };
         }
-        // Added mock handlers for missing functions
+        
+        // --- MOCK MANTENIMIENTO ---
+        if (functionName === 'analyzePurge') {
+            const analysis = MockDB.analyzePurge(body.target, body.days);
+            return { data: analysis as any };
+        }
+        if (functionName === 'executePurge') {
+            const count = MockDB.executePurge(body.target, body.days);
+            return { data: { success: true, count } as any };
+        }
+
         if (functionName === 'getServerTime') { return { data: { server_time: new Date().toISOString() } as any }; }
         if (functionName === 'redeemLoyaltyPoints') { return { data: { success: true } as any }; }
         if (functionName === 'createUser') {
@@ -63,6 +72,40 @@ async function invokeEdgeFunction<T>(functionName: string, body: any): Promise<A
             return { data: { bet_id: newBet.id, ticket_code: newBet.ticket_code } as any };
         }
 
+        if (functionName === 'rechargeUser') {
+            const users = MockDB.getUsers();
+            const target = users.find((u: any) => u.id === body.target_user_id);
+            if (!target) return { error: 'Usuario no encontrado' };
+            target.balance_bigint += body.amount;
+            MockDB.saveUser(target);
+            MockDB.addTransaction({ user_id: target.id, amount_bigint: body.amount, balance_after: target.balance_bigint, type: 'CREDIT', created_at: new Date().toISOString() });
+            return { data: { new_balance: target.balance_bigint, tx_id: 'TX-'+Date.now() } as any };
+        }
+
+        if (functionName === 'withdrawUser') {
+            const users = MockDB.getUsers();
+            const target = users.find((u: any) => u.id === body.target_user_id);
+            if (!target) return { error: 'Usuario no encontrado' };
+            if (target.balance_bigint < body.amount) return { error: 'Saldo insuficiente' };
+            target.balance_bigint -= body.amount;
+            MockDB.saveUser(target);
+            MockDB.addTransaction({ user_id: target.id, amount_bigint: -body.amount, balance_after: target.balance_bigint, type: 'DEBIT', created_at: new Date().toISOString() });
+            return { data: { new_balance: target.balance_bigint, tx_id: 'TX-'+Date.now() } as any };
+        }
+
+        if (functionName === 'getLiveResults') {
+            return { data: { results: MockDB.getResults().filter(r => r.date === new Date().toISOString().split('T')[0]), history: MockDB.getResults() } as any };
+        }
+
+        if (functionName === 'publishDrawResult') {
+            MockDB.saveResult(body);
+            return { data: { success: true } as any };
+        }
+
+        if (functionName === 'getGlobalBets') {
+            return { data: { bets: MockDB.getBets() } as any };
+        }
+
         return { message: 'Operación simulada' } as any;
     }
 
@@ -90,7 +133,6 @@ export const api = {
   getLiveResults: async () => invokeEdgeFunction<{ results: DrawResult[]; history: DrawResult[] }>('getLiveResults', {}),
   publishDrawResult: async (payload: DrawResultPayload) => invokeEdgeFunction<any>('publishDrawResult', payload),
   
-  // Added missing methods called by components
   createUser: async (payload: any) => invokeEdgeFunction<{ user: AppUser }>('createUser', payload),
   deleteUser: async (payload: any) => invokeEdgeFunction<any>('deleteUser', payload),
   updateUserStatus: async (payload: any) => invokeEdgeFunction<any>('updateUserStatus', payload),

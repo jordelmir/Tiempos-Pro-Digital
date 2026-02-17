@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>TIEMPOSPRO v3.5 | Comando Phront</title>
+    <title>TIEMPOSPRO v3.9 | Comando Phront</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +15,11 @@
       tailwind.config = {
         theme: {
           extend: {
+            screens: {
+              'xs': '400px',
+              '3xl': '1920px',
+              '4k': '2560px',
+            },
             colors: {
               cyber: {
                 black: '#020202',
@@ -51,20 +56,82 @@
       }
     </script>
     <style>
-      body { background-color: #020202; color: #e2e8f0; }
-      .text-glow { text-shadow: 0 0 10px currentColor; }
-      .text-glow-red { text-shadow: 0 0 20px #FF0033; }
-      .text-glow-cyan { text-shadow: 0 0 20px #00D1FF; }
-      .text-glow-green { text-shadow: 0 0 20px #00FF94; }
-      .glass-morphism { backdrop-filter: blur(12px); background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); }
-      .carbon-texture { background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
-      @keyframes scanline {
-        0% { transform: translateY(-100%); }
-        100% { transform: translateY(100vh); }
+      html, body {
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        background-color: #020202;
+        color: #e2e8f0;
       }
-      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: #020202; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 10px; }
+      
+      body { 
+        -webkit-font-smoothing: antialiased;
+      }
+      
+      /* FLUID TEXT WITH PRECISE BOUNDARIES FOR 2K/REINA */
+      .text-fluid-h1 { font-size: clamp(1.8rem, 5vw, 3.8rem); line-height: 0.9; }
+      .text-fluid-balance { font-size: clamp(1.4rem, 4vw, 3.5rem); line-height: 1; }
+      .text-fluid-number-giant { font-size: clamp(3.5rem, 12vw, 9rem); line-height: 0.8; }
+      
+      .glass-morphism { 
+        backdrop-filter: blur(20px) saturate(180%); 
+        background: rgba(0, 0, 0, 0.4); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+      }
+      
+      .prismatic-border {
+        position: relative;
+      }
+      .prismatic-border::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(0,209,255,0.2), rgba(188,19,254,0.2), rgba(255,255,255,0.1));
+        z-index: -1;
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .carbon-texture { background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
+      
+      .hud-scanline {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to bottom, transparent, rgba(0, 209, 255, 0.03) 50%, transparent);
+        background-size: 100% 4px;
+        z-index: 9999;
+        pointer-events: none;
+        animation: scanlineMove 8s linear infinite;
+      }
+
+      @keyframes scanlineMove {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(100%); }
+      }
+      
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      input[type=number]::-webkit-inner-spin-button, 
+      input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+      }
+
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #020202;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1e3a8a;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #00D1FF;
+      }
     </style>
     <script type="module" src="/index.tsx"></script>
 <script type="importmap">
@@ -91,5 +158,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <div class="hud-scanline"></div>
   </body>
 </html>

@@ -1,10 +1,10 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 
-interface Props {
+interface ErrorBoundaryProps {
   children?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
@@ -13,9 +13,9 @@ interface State {
 /**
  * ErrorBoundary class component to catch rendering errors in the component tree.
  */
-export default class ErrorBoundary extends Component<Props, State> {
-  // Use class fields for state to ensure TypeScript correctly recognizes inherited members from Component
-  public override state: State = {
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Initialize state directly as a class property for better TypeScript inference
+  public state: ErrorBoundaryState = {
     hasError: false,
     error: null,
     errorInfo: null
@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   /**
    * Static lifecycle method to update state on render error.
    */
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error, errorInfo: null };
   }
@@ -32,20 +32,18 @@ export default class ErrorBoundary extends Component<Props, State> {
   /**
    * Lifecycle method to handle error side effects and update state trace.
    */
-  public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
-    // Use setState which is inherited from Component base class
     this.setState({ error, errorInfo });
   }
 
-  public override render(): ReactNode {
-    // state and props are correctly recognized as instance members inherited from Component
+  public render(): ReactNode {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-black text-red-500 font-mono p-8 flex flex-col items-center justify-center relative overflow-hidden selection:bg-red-500 selection:text-black">
           {/* Background Noise */}
           <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] bg-repeat opacity-20 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.4)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] bg-repeat opacity-20 pointer-events-none"></div>
           
           <div className="max-w-3xl w-full border-2 border-red-600 bg-[#0a0000] p-8 rounded-lg shadow-[0_0_50px_rgba(220,38,38,0.5)] relative z-10 animate-in zoom-in duration-300">
             <div className="flex items-center gap-4 mb-6 border-b border-red-900/50 pb-4">

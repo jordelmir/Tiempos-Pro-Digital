@@ -75,6 +75,9 @@ export default function UserControlModal({ isOpen, onClose, targetUser, onSucces
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto custom-scrollbar">
         <div className="relative max-w-lg w-full mx-4 my-8">
+            {/* ALIVE NEON GLOW */}
+            <div className={`absolute -inset-4 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000 opacity-20 ${action === 'DELETE' ? 'bg-red-600' : action ? 'bg-cyber-orange' : 'bg-cyber-blue'}`}></div>
+            
             <div className={`absolute -inset-1 rounded-2xl opacity-40 blur-xl transition-colors duration-700 animate-[pulse_3s_ease-in-out_infinite] ${action === 'DELETE' ? 'bg-red-600' : action ? 'bg-cyber-orange' : 'bg-cyber-blue'}`}></div>
             
             <div className="bg-[#050a14] border-2 border-white/10 rounded-2xl overflow-hidden relative shadow-2xl z-10 transition-colors duration-500">

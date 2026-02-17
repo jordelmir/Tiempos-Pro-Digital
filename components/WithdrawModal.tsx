@@ -99,6 +99,8 @@ export default function WithdrawModal({ isOpen, onClose, targetUser, onSuccess }
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
         <div className="relative max-w-sm w-full mx-4 perspective-1000 max-h-[90vh] flex flex-col">
+            {/* ALIVE NEON GLOW */}
+            <div className={`absolute -inset-4 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000 ${status === 'INSUFFICIENT_FUNDS' ? 'bg-red-600/30' : 'bg-cyber-orange/20'}`}></div>
             
             <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[95%] z-10">
                 <div className="h-10 bg-[#0a0a0a] rounded-t-xl shadow-[inset_0_5px_15px_black] border-x border-t border-white/10 flex items-end justify-center overflow-hidden relative">

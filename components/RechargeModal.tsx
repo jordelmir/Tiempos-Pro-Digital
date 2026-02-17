@@ -99,12 +99,14 @@ export default function RechargeModal({ isOpen, onClose, targetUser, onSuccess }
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
         <div className="relative max-w-md w-full mx-4 perspective-1000 max-h-[90vh] flex flex-col">
+            {/* ALIVE NEON GLOW */}
+            <div className="absolute -inset-4 bg-cyber-emerald/20 rounded-[3rem] blur-3xl animate-pulse transition-all duration-1000"></div>
             
             {status !== 'INJECTING' && (
                 <button onClick={handleClose} className="absolute -top-12 right-0 text-slate-500 hover:text-white transition-colors z-50"><i className="fas fa-times text-2xl"></i></button>
             )}
 
-            <div className={`bg-[#050a14] border-2 border-white/10 rounded-3xl overflow-hidden relative transition-all duration-500 ${getContainerClass()} flex flex-col max-h-full`}>
+            <div className={`bg-[#050a14] border-2 border-white/10 rounded-3xl overflow-hidden relative transition-all duration-500 z-10 ${getContainerClass()} flex flex-col max-h-full`}>
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
                 
                 <div className="overflow-y-auto custom-scrollbar">
